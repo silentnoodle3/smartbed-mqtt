@@ -1,6 +1,9 @@
-# Smart Bed MQTT
+# Smart Bed MQTT Reverie
 
-This project aims to enable remote control of adjustable smart beds from HomeAssistant.
+This is a fork of [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt), which aims to enable
+remote control of adjustable smart beds from HomeAssistant. This fork adds support for the Reverie "RevCB" control
+box variant (e.g. the module used on a Reverie 3EMT king adjustable base) - see the [Reverie RevCB](#reverie-revcb-support-ble)
+section below.
 
 ## Support is for:
 
@@ -23,6 +26,7 @@ This project aims to enable remote control of adjustable smart beds from HomeAss
 - [Solace](#solace-support-ble) [experimental]
 - [MotoSleep](#motosleep-support-ble) [experimental]
 - [Reverie](#reverie-support-ble) [prototype]
+- [Reverie RevCB](#reverie-revcb-support-ble) (fork addition) [prototype]
 - [Leggett & Platt](#leggett--platt-support-ble) (Okin & Richmat variants) [prototype]
 - [Okimat](#okimat-support-ble) [prototype]
 - [Keeson](#keeson-support-ble) [prototype]
@@ -246,6 +250,34 @@ You must specify at least one bleProxy as demonstrated in the config defaults. Y
 This remains connected to the bed controller and due to the bed only accepting one connection it will stop you from using the app to control the bed.
 
 Initial prototyping was only possible due to assistance from Vitaliy on Discord.
+
+# Reverie RevCB Support (BLE)
+
+> This variant is only in this fork, not upstream. It covers a different Reverie control box than the
+> [Reverie](#reverie-support-ble) variant above - one that advertises BLE service UUID
+> `db801000-f324-29c3-38d1-85c0c2e86885` (seen on a Reverie 3EMT king adjustable base). It's auto-detected
+> alongside the other Reverie variant, using the same `reverieDevices` configuration.
+
+## Configuring
+
+You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one Reverie controller with `name` and `friendlyName`, the same as the [Reverie](#reverie-support-ble) variant above.
+
+## Current features include:
+
+- Buttons to trigger the standard presets (Zero-G, Anti-Snore, Flat)
+- Buttons to trigger the user presets (Memory 1-4)
+- Switch to control the under bed light
+- Sensors reporting raw head/foot position
+- Covers to control the head/feet motors (open/close/stop only - this control box does not support driving to an absolute position)
+
+## Possible future features:
+
+- Program Memory 1-4 buttons (saving the current position to a slot) - not yet reverse engineered
+- Calibrated head/foot angle (in degrees) once the true min/max range is known
+
+## Notes
+
+Reverse engineered from a live BLE capture (Android HCI snoop log) of the official Reverie Nightstand app. Unlike the `simple` Reverie variant, there is no shared header/checksum command framing - each function (presets, head motor, foot motor, light) is its own GATT characteristic, and values are written directly.
 
 # Leggett & Platt Support (BLE)
 
