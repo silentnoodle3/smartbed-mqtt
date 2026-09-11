@@ -1,230 +1,85 @@
 # Smart Bed MQTT Reverie
 
-This is a fork of [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt), which aims to enable
-remote control of adjustable smart beds from HomeAssistant. This fork adds support for the Reverie "RevCB" control
-box variant (e.g. the module used on a Reverie 3EMT king adjustable base) - see the [Reverie RevCB](#reverie-revcb-support-ble)
-section below.
+A private fork of [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt) for Home Assistant,
+focused specifically on **Reverie adjustable bases** - in particular the "RevCB" control box variant (the module used
+on a Reverie 3EMT king adjustable base, and likely other Reverie models sharing the same control box).
 
-## Support is for:
+This fork adds full support for that control box (upstream only supports a different, incompatible Reverie variant),
+and trims the add-on's configuration down to just Reverie plus a diagnostic scanner mode, since that's all this fork
+is meant to be used for. The other bed brands upstream supports (Sleeptracker, ErgoWifi, Richmat, Linak, Keeson,
+etc.) still exist untouched in the source code, just hidden from this fork's add-on configuration UI - see
+[the original project](https://github.com/richardhopton/smartbed-mqtt) if you need one of those.
 
-### Cloud based
+## What you'll need
 
-- [Sleeptracker AI](#sleeptracker-ai-support-cloud) (Tempur Ergo/Extend, BeautyRest SmartMotion, and Serta Perfect Smart Base)
-- [ErgoWifi](#ergowifi-support-cloud) [experimental]
+- A Home Assistant instance with the [Mosquitto MQTT broker add-on](https://github.com/home-assistant/addons/tree/master/mosquitto) installed and running.
+- A dedicated ESP32 running [ESPHome's Bluetooth proxy](https://esphome.io/projects/?type=bluetooth), on the same network as Home Assistant. **Do not** add this ESP32 to Home Assistant as a Bluetooth proxy integration - due to an ESPHome limitation, only one connection can use an ESP32's Bluetooth proxy at a time, and this add-on needs that connection for itself.
+- A Reverie adjustable base that's controllable via the Reverie Nightstand app over Bluetooth directly (not one that only uses Bluetooth to join Wi-Fi - those use Reverie's AWS cloud instead and aren't supported here or upstream).
 
-### Local Wifi
+## Installation
 
-- [ErgoMotion](#ergomotion-support-local-tcp) [experimental]
-- [Logicdata](#logicdata-support-local-http--udp) [prototype]
+1. In Home Assistant: **Settings → Add-ons → Add-on Store**.
+2. Click the ⋮ menu (top right) → **Repositories**.
+3. Paste `https://github.com/silentnoodle3/smartbed-mqtt`, click **Add**, then **Close**.
+4. Refresh the page. Find **Smartbed MQTT Reverie** in the store, click it, then **Install**. This builds a Docker image on your Home Assistant host and can take 10-20+ minutes depending on your hardware - be patient.
+5. Once installed, go to the **Configuration** tab (see below for what to put there) before starting it.
 
-### Local Bluetooth Low Energy (BLE)
+## Finding your bed's Bluetooth name
 
-<em>NOTE: The following requires an [ESPHome BLE Proxy](#ble-proxy)</em>
+Every Reverie RevCB control box broadcasts a Bluetooth name starting with `RevCB_` (e.g. `RevCB_E1`) while powered
+on. You need your bed's *exact* name (case-sensitive, underscore included) for the configuration below. Two ways to
+get it:
 
-- [Richmat](#richmat-support-ble) [experimental]
-- [Linak](#linak-support-ble) [prototype]
-- [Solace](#solace-support-ble) [experimental]
-- [MotoSleep](#motosleep-support-ble) [experimental]
-- [Reverie](#reverie-support-ble) [prototype]
-- [Reverie RevCB](#reverie-revcb-support-ble) (fork addition) [prototype]
-- [Leggett & Platt](#leggett--platt-support-ble) (Okin & Richmat variants) [prototype]
-- [Okimat](#okimat-support-ble) [prototype]
-- [Keeson](#keeson-support-ble) [prototype]
-- [Octo](#octo-support-ble) [prototype]
+### Option A: Use this add-on's built-in scanner (recommended, no extra app needed)
 
-# Installation
+1. Set the add-on's `type` to `scanner` and `scannerDevices` to `[{ "name": "revcb" }]` (a lowercase prefix match is enough - you don't need to know the exact name yet).
+2. Also set `bleProxies` to point at your ESP32 (see Configuration below).
+3. Start the add-on and open its **Log** tab.
+4. Make sure the bed is powered on, then look for a line like:
+   ```
+   [Scanner] Found device: RevCB_E1 (d63aec0f994a): {...}
+   ```
+   The name shown (`RevCB_E1` in this example - yours will differ) is what you need.
+5. Stop the add-on, switch `type` back to `reverie`, and continue to Configuration below.
 
-- In HomeAssistant click Settings, Add-ons, and Add-on Store.
-- Click the 3 dot menu in the top right and select Repositories.
-- Paste https://github.com/richardhopton/smartbed-mqtt, click Add, and Close
-- Select the Smartbed MQTT add-on from the list, and click Install.
-- Wait patiently for the build to finish.
-- Click on Configuration and set type followed by the necessary configuration as described below.
-- Click on Info and click Start.
+### Option B: Use a phone BLE scanner app
 
-## MQTT broker
-
-An MQTT broker is required. The [Mosquitto official Add-On](https://github.com/home-assistant/addons/tree/master/mosquitto) is recommended. Go to Add-ons and search for MQTT, then follow the provided instructions.
-
-## BLE proxy
-
-For BLE controlled beds a dedicated ESP32 running ESPHome's bluetooth proxy is required. Due to limitations in ESPHome, specifically since 2023.7 only one connection can use the bluetooth proxy of an ESP32 at a time, the BLE proxy will need to not be added (or disabled if already added) to HomeAssistant. Use the [ESPHome Ready-Made Projects](https://esphome.io/projects/?type=bluetooth) page to create an ESPHome bluetooth proxy and join it to your network.
-
-# Sleeptracker AI Support (Cloud)
+Install [nRF Connect](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) (free, Android &
+iOS), open it near the bed, start a scan, and look through the list of nearby devices for one whose advertised name
+starts with `RevCB_`. Tap it to see the full name if it's truncated in the list.
 
 ## Configuration
 
-To use this you must set at least one email and password as shown in the sample configuration.
+On the add-on's **Configuration** tab, set:
 
-It is possible to configure multiple users for one or more sleeptracker beds. Although it is possible to configure two users for the same bed, it is necessary if the represent a split bed.
-
-The default bed type is `tempur`, but can be adjusted by specifying `beautyrest` or `serta` using the optional type field on each user.
-
-e.g.
-
-```
- - email: me@example.org
-   password: some strong password
-   type: tempur
+```yaml
+type: reverie
+bleProxies:
+  - host: your-ble-proxy.local   # the ESP32 running ESPHome's Bluetooth proxy
+reverieDevices:
+  - name: RevCB_E1                # the exact name you found above
+    friendlyName: Reverie Bed     # whatever you want it called in Home Assistant
 ```
 
-`sleeptrackerRefreshFrequency` is in minutes.
+If your ESP32's `.local` hostname doesn't resolve, use its IP address instead.
 
-## Current features include:
+Save, go to the **Info** tab, and click **Start**. Check the **Log** tab for a line like:
 
-- Buttons to trigger the presets
-- Buttons to program the presets
-- Switches to control Snore response
-- Environmental sensors (temperature, humidity, CO2 & VOC)
-- Switch for safety light
-- Sensors for Heat & Foot Angle
-- Buttons to step thru the massage strengths, patterns & timer (auto turn off massage)
-- Sensors for Massage strengths and patterns
-- Support for split beds, and multiple beds
-- Covers to control motors for raising, lowering, and stopping the head/feet/tilt/lumbar
+```
+[Reverie] Setting up entities for device: RevCB_E1
+```
 
-## Possible future features:
+If instead you see `[Reverie] Device not supported`, your control box uses a different (unsupported) protocol - see
+the notes on the two Reverie variants below.
 
-- Configuration of bed "alarm"
-- Service to trigger sleep summary email to be sent from Sleeptracker
+## What you get
 
-## Features that can't be done:
+A new device in Home Assistant (named whatever you set `friendlyName` to) with:
 
-- Presence detection
-
-## Notes
-
-This uses the same api used by the iOS and Android apps, so it is possible that this will break if the apps are changed. I will attempt to maintain it where feasible, but also open to PRs.
-
-# ErgoWifi Support (Cloud)
-
-This uses the Chinese cloud called xlink - there is no guarantees that this will work.
-
-## Current features include:
-
-- Buttons to trigger the presets
-- Button for under bed lights
-- Buttons to step thru the massage strengths for head & foot, massage mode, and toggle
-
-# ErgoMotion Support (Local TCP)
-
-You must specify an `ipAddress` (or DNS name), `friendlyName`, and `remoteStyle`
-
-## Current features include:
-
-- Buttons to trigger the presets
-- Button for under bed lights
-- Buttons to step thru the massage strengths for head & foot, massage mode, and toggle
-- Covers to control motors for raising, lowering, and stopping the head/feet/tilt/lumbar
-
-## Notes
-
-This uses local connection via tcp - please ensure the add-on has access to network devices.
-
-Initial prototyping was only possible due to assistance from Wozman on Discord.
-
-# Logicdata Support (Local HTTP & UDP)
-
-## Configuring
-
-You must specify at least one Logicdata controller with `name` and `friendlyName`, and optionally `ipAddress`. If an `ipAddress` is not specified UDP discovery will be used to get the `ipAddress`.
-
-## Current features include:
-
-- Buttons to trigger the flat preset
-- Buttons to trigger the user presets
-- Buttons to program the user presets
-- Controls for the head, lumbar & leg massage intesity & massage mode
-- Covers to control motors for raising, lowering, and stopping the head/legs
-
-## Notes
-
-This uses local connection via http and udp - please ensure the add-on has access to network devices.
-
-Initial prototyping was only possible due to assistance from James on Discord.
-
-# Richmat Support (BLE)
-
-## Configuring
-
-You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one Richmat controller with `name`, `friendlyName`, `remoteCode`, and optionally `stayConnected`.
-
-## Current features include:
-
-- Buttons to trigger the presets
-- Buttons to program the presets
-- Button for under bed lights
-- Buttons to step thru the massage strengths for head & foot, massage mode, and toggle
-- Covers to control motors for raising, lowering, and stopping the pillow/head/feet/lumbar
-
-## Notes
-
-Setting `stayConnected` to `true` will stop you from being able to use the app to control the bed if the bed only accepts one Bluetooth connection.
-
-Support for this was only possible due to assistance from getrav on Discord. This was originally reverse engineered from a Sven & Son bed, so your mileage may vary.
-
-# Linak Support (BLE)
-
-## Configuring
-
-You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one Linak controller with `name`, `friendlyName`, and optionally `hasMassage`
-
-## Current features include:
-
-- Buttons to trigger the presets
-- Buttons to program the presets
-- Button & switch for under bed lights
-- Sensor to read the back & leg angles
-- Buttons to control massage strengths for head, foot or both, massage mode, and toggle/off
-- Covers to control motors for raising, lowering, and stopping the head/leg
-
-## Notes
-
-This remains connected to the bed controller and due to the bed only accepting one connection it will stop you from using the app or remote to control the bed.
-
-Initial prototyping was only possible due to assistance from jascdk on Discord.
-
-# Solace Support (BLE)
-
-## Configuring
-
-You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one Solace controller with `name` and `friendlyName`.
-
-## Current features include:
-
-- Buttons to trigger the standard presets
-- Buttons to trigger the user presets
-- Buttons to program the user presets
-- Buttons to reset the user presets
-- Covers to control motors for raising, lowering, and stopping the back/legs/lift/tilt
-
-## Notes
-
-This remains connected to the bed controller and due to the bed only accepting one connection it will stop you from using the app to control the bed.
-
-Initial prototyping was only possible due to assistance from Bonopaws on Discord.
-
-# MotoSleep Support (BLE)
-
-## Configuring
-
-You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one MotoSleep controller with `name`, `friendlyName`, and optionally `stayConnected`.
-
-## Current features include:
-
-- Buttons to trigger the presets
-- Buttons to program the presets
-- Button to toggle under bed lights
-- Buttons to step thru the massage for head & foot
-- Buttons to turn off head or foot massage
-- Button to stop all motors & massage
-- Covers to control motors for raising, lowering, and stopping the head/feet/lumbar/neck/tilt
-
-## Notes
-
-Setting `stayConnected` to `true` will stop you from being able to use the app to control the bed if the bed only accepts one Bluetooth connection.
-
-Initial prototyping was only possible due to assistance from waynebowie99 on Discord.
+- Buttons: **Preset: Zero G**, **Preset: Anti Snore**, **Preset: Flat**, **Preset: Memory 1-4**
+- An **Under Bed Lights** switch
+- **MotorHead** / **MotorFeet** covers (open = raise, close = lower, stop = stop - there's no "set to X%" slider, since the bed's motors don't support driving to an absolute position, only "move until told to stop")
+- **Head Position** / **Foot Position** sensors (raw position counters from the bed - not calibrated to real degrees)
 
 # Reverie Support (BLE)
 
@@ -279,84 +134,9 @@ You must specify at least one bleProxy as demonstrated in the config defaults. Y
 
 Reverse engineered from a live BLE capture (Android HCI snoop log) of the official Reverie Nightstand app. Unlike the `simple` Reverie variant, there is no shared header/checksum command framing - each function (presets, head motor, foot motor, light) is its own GATT characteristic, and values are written directly.
 
-# Leggett & Platt Support (BLE)
-
-## Configuring
-
-You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one Leggett & Platt controller with `name` and `friendlyName`. This supports Gen2 (Richmat) and Okin variants that can be controlled by the LP Control app.
-
-## Current features include:
-
-- Buttons to trigger the standard presets
-- Buttons to trigger the user presets
-- Buttons to program the user presets
-- Light to control under bed lights
-- Controls for the head & foot massage intesity & massage wave
-- Covers to control motors for raising, lowering, and stopping the head/feet/pillow/lumbar
-
-## Notes
-
-This remains connected to the bed controller and due to the bed only accepting one connection it will stop you from using the app to control the bed.
-
-Initial prototyping was only possible due to assistance from MarcusW on Discord.
-
-# Okimat Support (BLE)
-
-## Configuring
-
-You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one Okimat controller with `name`, `friendlyName` and `remoteCode`.
-
-## Current features include (depending on remote code support):
-
-- Buttons to trigger the flat preset
-- Buttons to trigger the user presets
-- Buttons to program the user presets
-- Button for under bed lights
-- Covers to control motors for raising, lowering, and stopping the back & legs
-
-## Notes
-
-Support for this was only possible due to assistance from david_nagy, corne & PT on Discord.
-
-# Keeson Support (BLE)
-
-> Keeson motor controllers are used by many bed manufacturers including (but not limited to) Member's Mark, Purple, ErgoMotion. The prototype was tested using the [Member's Mark Premier Adjustable Base](https://www.samsclub.com/p/-/prod22421683) bed variant.
-
-## Configuring
-
-You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one Keeson controller with `name` and `friendlyName`.
-
-## Current features include:
-
-- Buttons to trigger the standard presets
-- Buttons to trigger the user presets
-- Buttons to program the user presets
-- Controls for the head & foot massage intesity, wave setting & timer
-- Covers to control motors for raising, lowering, and stopping the head/feet/tilt/lumbar
-
-## Notes
-
-This remains connected to the bed controller and due to the bed only accepting one connection it will stop you from using the app to control the bed.
-
-Initial prototyping was only possible due to assistance from [@alanbixby](https://github.com/alanbixby/) on Discord.
-
-# Octo Support (BLE)
-
-## Configuring
-
-You must specify at least one bleProxy as demonstrated in the config defaults. You also need to supply at least one Octo controller with `name`, `friendlyName`, and optional `pin`.
-
-## Current features include:
-
-- Button for under bed lights, if present
-- Covers to control motors for raising, lowering, and stopping the head/legs
-
-## Notes
-
-This remains connected to the bed controller and due to the bed only accepting one connection it will stop you from using the app to control the bed.
-
-Initial prototyping was only possible due to assistance from Murp on Discord.
-
 # Support
 
-For help with setup, or for sharing feedback please join the Discord server https://discord.gg/Hf3kpFjbZs
+This fork is unsupported and maintained informally - if something's broken, you know who to ask. For the upstream
+project (other bed brands, general questions), see
+[richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt) and its Discord:
+https://discord.gg/Hf3kpFjbZs
