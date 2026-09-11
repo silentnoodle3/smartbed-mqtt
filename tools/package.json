@@ -1,0 +1,10 @@
+{
+  "name": "smartbed-mqtt-reverie-tools",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone BLE reverse-engineering tools used to add Reverie RevCB support. Not part of the add-on build - run these directly with node.",
+  "dependencies": {
+    "@2colors/esphome-native-api": "^1.3.1"
+  }
+}

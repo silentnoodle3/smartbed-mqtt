@@ -140,3 +140,12 @@ This fork is unsupported and maintained informally - if something's broken, you 
 project (other bed brands, general questions), see
 [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt) and its Discord:
 https://discord.gg/Hf3kpFjbZs
+
+# Reverse-engineering tools
+
+The [`tools/`](tools/) directory has the standalone scripts used to reverse-engineer the Reverie RevCB protocol
+above - a one-shot GATT dumper, an interactive BLE read/write console, and a parser for Android BLE traffic captures
+(the thing that actually cracked the protocol, after GATT dumps and blind command guessing got nowhere). They're not
+part of the add-on itself; see [tools/README.md](tools/README.md) for what each one does and how to run them, useful
+if this ever needs revisiting - new presets, a different hardware revision, or helping someone else with the same bed
+family debug their own setup.
