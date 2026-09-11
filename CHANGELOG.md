@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.7
+
+**Bug Fixes**
+
+- (Common) Fix every entity (not just Reverie's) showing as permanently "Unavailable" in Home Assistant after a Home Assistant restart, if it happened to coincide with the add-on's own restart. Root cause: an entity's "online" availability is published exactly once, ~500ms after it's created, and is never retained on the broker - if Home Assistant's MQTT connection wasn't fully back up and subscribed at that exact moment, the message was lost forever with nothing to resend it. There was already a mechanism for "Home Assistant came back online" (re-announcing each entity's discovery config), it just never also replayed availability. Now it does - replaying whatever the entity's last real availability was, not blindly forcing "online" regardless of legitimate offline states elsewhere in the codebase (a couple of Sleeptracker features use those for real reasons)
+
 ## v1.1.22-reverie.6
 
 **New Features**

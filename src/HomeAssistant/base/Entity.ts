@@ -21,6 +21,14 @@ export class Entity implements IAvailable {
   private availabilityTopic: string;
   private entityTag: string;
   private uniqueId: string;
+  // Neither availability nor state messages are retained on the broker, so if HA
+  // Core (not just this add-on) restarts, an entity's one-time initial availability
+  // publish is long gone and nothing re-sends it - the entity just shows unavailable
+  // forever until something unrelated happens to change its state. Track the last
+  // availability we actually set so it can be replayed once HA reports back online,
+  // rather than assuming every entity should always come back "online" regardless of
+  // whether it was legitimately set offline for some other reason.
+  private lastAvailability: string = ONLINE;
 
   constructor(
     protected mqtt: IMQTTConnection,
@@ -34,7 +42,11 @@ export class Entity implements IAvailable {
     this.availabilityTopic = `${this.baseTopic}/status`;
     this.mqtt.subscribe('homeassistant/status');
     this.mqtt.on('homeassistant/status', (message) => {
-      if (message === ONLINE) setTimeout(() => this.publishDiscovery(), seconds(15));
+      if (message === ONLINE)
+        setTimeout(() => {
+          this.publishDiscovery();
+          this.sendAvailability(this.lastAvailability);
+        }, seconds(15));
     });
     setTimeout(() => this.publishDiscovery(), 50);
   }
@@ -72,6 +84,7 @@ export class Entity implements IAvailable {
   }
 
   private sendAvailability(availability: string) {
+    this.lastAvailability = availability;
     setTimeout(() => this.mqtt.publish(this.availabilityTopic, availability), 500);
   }
 }
