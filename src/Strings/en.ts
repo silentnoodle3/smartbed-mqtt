@@ -70,6 +70,8 @@ const strings = {
   AngleBack: 'Back Angle',
   AngleFoot: 'Foot Angle',
   AngleLeg: 'Leg Angle',
+  HeadPosition: 'Head Position',
+  FootPosition: 'Foot Position',
   SafetyLights: 'Safety Lights',
   SafetyLightsToggle: 'Toggle Safety Lights',
   UnderBedLightsToggle: 'Toggle Under Bed Lights',

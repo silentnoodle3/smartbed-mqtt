@@ -7,9 +7,11 @@ import { IESPConnection } from 'ESPHome/IESPConnection';
 import { getDevices } from './options';
 import { isSupported as isSimpleSupported } from './simple/isSupported';
 import { controllerBuilder as simpleControllerBuilder } from './simple/controllerBuilder';
+import { isSupported as isRevCBSupported } from './revcb/isSupported';
+import { controllerBuilder as revCBControllerBuilder } from './revcb/controllerBuilder';
 
-const checks = [isSimpleSupported];
-const controllerBuilders = [simpleControllerBuilder];
+const checks = [isSimpleSupported, isRevCBSupported];
+const controllerBuilders = [simpleControllerBuilder, revCBControllerBuilder];
 
 export const reverie = async (mqtt: IMQTTConnection, esphome: IESPConnection) => {
   const devices = getDevices();
