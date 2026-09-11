@@ -4,6 +4,7 @@ import { logInfo } from '@utils/logger';
 import { IBLEDevice } from 'ESPHome/types/IBLEDevice';
 import { RevCBController } from './RevCBController';
 import { setupLightEntities } from './setupLightEntities';
+import { setupMemoryTracking } from './setupMemoryTracking';
 import { setupMotorEntities } from './setupMotorEntities';
 import { setupPositionSensors } from './setupPositionSensors';
 import { setupPresetButtons } from './setupPresetButtons';
@@ -48,6 +49,7 @@ export const controllerBuilder = async (mqtt: IMQTTConnection, deviceData: IDevi
   setupLightEntities(mqtt, controller);
   setupMotorEntities(mqtt, controller);
   setupPositionSensors(mqtt, controller);
+  setupMemoryTracking(mqtt, controller);
 
   return controller;
 };

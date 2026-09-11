@@ -16,6 +16,7 @@ export type RevCBCommand = { target: RevCBTarget; value: number[] };
 
 export class RevCBController extends EventEmitter implements IEventSource, IController<RevCBCommand> {
   cache: Dictionary<object> = {};
+  private lastPositions: Dictionary<number> = {};
 
   constructor(
     public deviceData: IDeviceData,
@@ -25,9 +26,17 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
   ) {
     super();
     Object.entries(notifyHandles).forEach(([key, handle]) => {
-      void this.bleDevice.subscribeToCharacteristic(handle, (data) => this.emit(key, data));
+      void this.bleDevice.subscribeToCharacteristic(handle, (data) => {
+        this.lastPositions[key] = data[0];
+        this.emit(key, data);
+      });
     });
   }
+
+  // Last known value seen on a notify key (e.g. 'headPosition'/'footPosition') -
+  // used to capture the bed's current position at the moment a Program Memory button
+  // is pressed, since the device itself never reports what's stored in a memory slot.
+  getLastPosition = (key: string): number | undefined => this.lastPositions[key];
 
   writeCommand = async (command: RevCBCommand) => this.writeCommands([command]);
 

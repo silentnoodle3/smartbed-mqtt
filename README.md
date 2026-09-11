@@ -80,6 +80,7 @@ A new device in Home Assistant (named whatever you set `friendlyName` to) with:
 - An **Under Bed Lights** switch
 - **MotorHead** / **MotorFeet** covers (open = raise, close = lower, stop = stop - there's no "set to X%" slider, since the bed's motors don't support driving to an absolute position, only "move until told to stop")
 - **Head Position** / **Foot Position** sensors (raw position counters from the bed - not calibrated to real degrees)
+- **Program: Memory 1-4** buttons (tucked into Home Assistant's Configuration entity category, since it's a save action) and matching **Memory N Head/Foot Position** sensors - the bed itself never reports what's stored in a memory slot, so the add-on captures its own live position sensors at the moment you press Program and remembers it (persisted to disk, so it survives an add-on restart)
 
 # Reverie Support (BLE)
 
@@ -135,6 +136,8 @@ You must specify at least one bleProxy as demonstrated in the config defaults. Y
 Reverse engineered from a live BLE capture (Android HCI snoop log) of the official Reverie Nightstand app. Unlike the `simple` Reverie variant, there is no shared header/checksum command framing - each function (presets, head motor, foot motor, light) is its own GATT characteristic, and values are written directly.
 
 Program Memory codes were confirmed the same way (a live capture of the app saving the bed's current position), and turned out to be a clean pattern rather than an arbitrary new number: each is the matching recall code with the high bit set (e.g. Memory 1 recall is `0x04`, program/save is `0x84`). Only Memory 1 was individually captured - 2-4 are extrapolated from that pattern.
+
+The per-slot position sensors are published with MQTT retain (nothing else in this add-on does this) specifically so they survive a Home Assistant restart without needing a fresh Program press - Home Assistant would otherwise show them as unavailable until the next save, even though the add-on's own on-disk record is still correct.
 
 # Support
 

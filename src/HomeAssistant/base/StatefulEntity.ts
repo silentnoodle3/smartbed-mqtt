@@ -13,7 +13,8 @@ export class StatefulEntity<T> extends Entity implements IStateful<T> {
     mqtt: IMQTTConnection,
     deviceData: IDeviceData,
     entityConfig: EntityConfig,
-    componentType: ComponentType
+    componentType: ComponentType,
+    private retainState: boolean = false
   ) {
     super(mqtt, deviceData, entityConfig, componentType);
     this.stateTopic = `${this.baseTopic}/state`;
@@ -48,7 +49,14 @@ export class StatefulEntity<T> extends Entity implements IStateful<T> {
   private sendState() {
     setTimeout(() => {
       const message = this.mapState(this.state);
-      this.mqtt.publish(this.stateTopic, message);
+      // Only pass the retain argument when actually retaining - keeps the call
+      // signature identical to before this option existed for every entity that
+      // doesn't opt in (existing tests assert exact call arguments).
+      if (this.retainState) {
+        this.mqtt.publish(this.stateTopic, message, true);
+      } else {
+        this.mqtt.publish(this.stateTopic, message);
+      }
     }, 250);
   }
 }

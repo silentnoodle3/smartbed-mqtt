@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.6
+
+**New Features**
+
+- (Reverie RevCB) Track what position is saved in each Program Memory slot. The bed never reports what's stored in a slot - the add-on now captures its own live head/foot position sensors at the moment you press Program, publishes it as a "Memory N Head/Foot Position" sensor pair, and persists it to the add-on's `/data` volume so it survives a restart
+- (Common) Add optional MQTT retain support to `MQTTConnection.publish()`/`StatefulEntity` (opt-in, defaults to off - no behavior change for any existing entity), used by the new memory-position sensors so they survive a Home Assistant restart too
+
 ## v1.1.22-reverie.5
 
 **New Features**
