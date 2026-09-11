@@ -121,18 +121,20 @@ You must specify at least one bleProxy as demonstrated in the config defaults. Y
 
 - Buttons to trigger the standard presets (Zero-G, Anti-Snore, Flat)
 - Buttons to trigger the user presets (Memory 1-4)
+- Buttons to program the user presets (Memory 1-4) - saves the bed's *current* position into that slot
 - Switch to control the under bed light
 - Sensors reporting raw head/foot position
 - Covers to control the head/feet motors (open/close/stop only - this control box does not support driving to an absolute position)
 
 ## Possible future features:
 
-- Program Memory 1-4 buttons (saving the current position to a slot) - not yet reverse engineered
 - Calibrated head/foot angle (in degrees) once the true min/max range is known
 
 ## Notes
 
 Reverse engineered from a live BLE capture (Android HCI snoop log) of the official Reverie Nightstand app. Unlike the `simple` Reverie variant, there is no shared header/checksum command framing - each function (presets, head motor, foot motor, light) is its own GATT characteristic, and values are written directly.
+
+Program Memory codes were confirmed the same way (a live capture of the app saving the bed's current position), and turned out to be a clean pattern rather than an arbitrary new number: each is the matching recall code with the high bit set (e.g. Memory 1 recall is `0x04`, program/save is `0x84`). Only Memory 1 was individually captured - 2-4 are extrapolated from that pattern.
 
 # Support
 

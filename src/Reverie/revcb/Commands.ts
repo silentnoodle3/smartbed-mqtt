@@ -14,6 +14,15 @@ export const Commands = {
   PresetMemory3: { target: 'preset', value: [0x06] } as RevCBCommand,
   PresetMemory4: { target: 'preset', value: [0x07] } as RevCBCommand,
 
+  // Also written to the `preset` characteristic - saves the bed's current position
+  // into the given memory slot. Confirmed via live capture to be the matching recall
+  // code with the high bit set (e.g. Memory 1 recall 0x04 -> program 0x84), so 2-4
+  // are extrapolated from the same pattern rather than individually captured.
+  ProgramMemory1: { target: 'preset', value: [0x84] } as RevCBCommand,
+  ProgramMemory2: { target: 'preset', value: [0x85] } as RevCBCommand,
+  ProgramMemory3: { target: 'preset', value: [0x86] } as RevCBCommand,
+  ProgramMemory4: { target: 'preset', value: [0x87] } as RevCBCommand,
+
   // Head/foot motors run continuously in the given direction until a stop command
   // is written - there is no device-side "move to position" support.
   HeadUp: { target: 'headMotor', value: [0x01] } as RevCBCommand,
