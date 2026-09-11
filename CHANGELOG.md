@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.8
+
+**New Features**
+
+- (Reverie RevCB) Head/foot motor covers now support driving directly to an absolute position (drag the slider to a value, the bed drives there and stops on its own) instead of only open/close/stop. Discovered via a live capture of the official app's position slider: the same GATT characteristic used for position feedback is also writable, and writing a target byte there makes the device close the position loop itself - no polling or client-side stop timing needed on the add-on's side. The hold-to-move up/down/stop commands remain available and are still used to interrupt an in-progress move.
+
 ## v1.1.22-reverie.7
 
 **Bug Fixes**

@@ -40,7 +40,14 @@ export const controllerBuilder = async (mqtt: IMQTTConnection, deviceData: IDevi
   const controller = new RevCBController(
     deviceData,
     bleDevice,
-    { preset: handles.preset, headMotor: handles.headMotor, footMotor: handles.footMotor, light: handles.light },
+    {
+      preset: handles.preset,
+      headMotor: handles.headMotor,
+      footMotor: handles.footMotor,
+      headPosition: handles.headPosition,
+      footPosition: handles.footPosition,
+      light: handles.light,
+    },
     { headPosition: handles.headPosition, footPosition: handles.footPosition }
   );
 

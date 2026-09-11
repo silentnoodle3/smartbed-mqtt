@@ -11,7 +11,14 @@ import EventEmitter from 'events';
 // shared write characteristic carrying different command bytes. RevCBCommand carries
 // which named target to write to; controllerBuilder resolves target names to the
 // actual characteristic handles for this device.
-export type RevCBTarget = 'preset' | 'headMotor' | 'footMotor' | 'light';
+//
+// 'headPosition'/'footPosition' are dual-purpose: the same characteristic used for
+// live position notify is also writable, and writing a target byte there drives the
+// motor to that position autonomously (the device closes the loop itself and stops
+// on its own - confirmed via live capture of the official app's position slider).
+// 'headMotor'/'footMotor' remain for the separate hold-to-move/stop control (used to
+// interrupt an in-progress move).
+export type RevCBTarget = 'preset' | 'headMotor' | 'footMotor' | 'headPosition' | 'footPosition' | 'light';
 export type RevCBCommand = { target: RevCBTarget; value: number[] };
 
 export class RevCBController extends EventEmitter implements IEventSource, IController<RevCBCommand> {
@@ -53,9 +60,9 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
     }
   };
 
-  // The motors here run continuously once started until an explicit stop command is
-  // written (no device-side "move to position X" support), so there's no repeating
-  // command timer to cancel.
+  // A single write is all it takes for either the hold-to-move motor commands or the
+  // autonomous move-to-position commands - nothing here needs to be resent
+  // periodically to keep working, so there's no repeating command timer to cancel.
   cancelCommands = async () => {};
 
   on = (eventName: string, handler: (data: Uint8Array) => void): this => {

@@ -78,7 +78,7 @@ A new device in Home Assistant (named whatever you set `friendlyName` to) with:
 
 - Buttons: **Preset: Zero G**, **Preset: Anti Snore**, **Preset: Flat**, **Preset: Memory 1-4**
 - An **Under Bed Lights** switch
-- **MotorHead** / **MotorFeet** covers (open = raise, close = lower, stop = stop - there's no "set to X%" slider, since the bed's motors don't support driving to an absolute position, only "move until told to stop")
+- **MotorHead** / **MotorFeet** covers with a real position slider - drag to a value and the bed drives there and stops on its own, the same way the official app's slider works
 - **Head Position** / **Foot Position** sensors (raw position counters from the bed - not calibrated to real degrees)
 - **Program: Memory 1-4** buttons (tucked into Home Assistant's Configuration entity category, since it's a save action) and matching **Memory N Head/Foot Position** sensors - the bed itself never reports what's stored in a memory slot, so the add-on captures its own live position sensors at the moment you press Program and remembers it (persisted to disk, so it survives an add-on restart)
 
@@ -125,7 +125,7 @@ You must specify at least one bleProxy as demonstrated in the config defaults. Y
 - Buttons to program the user presets (Memory 1-4) - saves the bed's *current* position into that slot
 - Switch to control the under bed light
 - Sensors reporting raw head/foot position
-- Covers to control the head/feet motors (open/close/stop only - this control box does not support driving to an absolute position)
+- Covers with a real position slider for the head/feet motors - drag to a value and the bed drives there and stops on its own, plus open/close (to 100/0) and stop (interrupts an in-progress move)
 
 ## Possible future features:
 
@@ -136,6 +136,8 @@ You must specify at least one bleProxy as demonstrated in the config defaults. Y
 Reverse engineered from a live BLE capture (Android HCI snoop log) of the official Reverie Nightstand app. Unlike the `simple` Reverie variant, there is no shared header/checksum command framing - each function (presets, head motor, foot motor, light) is its own GATT characteristic, and values are written directly.
 
 Program Memory codes were confirmed the same way (a live capture of the app saving the bed's current position), and turned out to be a clean pattern rather than an arbitrary new number: each is the matching recall code with the high bit set (e.g. Memory 1 recall is `0x04`, program/save is `0x84`). Only Memory 1 was individually captured - 2-4 are extrapolated from that pattern.
+
+The head/foot motors have two independent control paths that both turned out to be real: a "hold to move" register (write a direction, it moves until you write stop) used for the manual up/down buttons, and - discovered later, from a live capture of the official app's position slider - the *same characteristic used for position feedback* is also writable, and writing a target byte there drives the motor to that position autonomously, stopping on its own without any further commands. Stop is still sent via the hold-to-move register's stop code; this is assumed (not yet directly confirmed) to also interrupt an in-progress autonomous move, since it's the same underlying motor either way.
 
 The per-slot position sensors are published with MQTT retain (nothing else in this add-on does this) specifically so they survive a Home Assistant restart without needing a fresh Program press - Home Assistant would otherwise show them as unavailable until the next save, even though the add-on's own on-disk record is still correct.
 

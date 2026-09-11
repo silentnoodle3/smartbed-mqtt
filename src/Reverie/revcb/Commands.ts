@@ -23,8 +23,10 @@ export const Commands = {
   ProgramMemory3: { target: 'preset', value: [0x86] } as RevCBCommand,
   ProgramMemory4: { target: 'preset', value: [0x87] } as RevCBCommand,
 
-  // Head/foot motors run continuously in the given direction until a stop command
-  // is written - there is no device-side "move to position" support.
+  // Hold-to-move: starts the motor moving continuously in the given direction until
+  // an explicit stop is written. Superseded by HeadTo/FootTo below for anything that
+  // knows its target position, but HeadStop/FootStop remain the way to interrupt an
+  // in-progress move (whichever kind).
   HeadUp: { target: 'headMotor', value: [0x01] } as RevCBCommand,
   HeadDown: { target: 'headMotor', value: [0x02] } as RevCBCommand,
   HeadStop: { target: 'headMotor', value: [0x00] } as RevCBCommand,
@@ -32,6 +34,14 @@ export const Commands = {
   FootUp: { target: 'footMotor', value: [0x01] } as RevCBCommand,
   FootDown: { target: 'footMotor', value: [0x02] } as RevCBCommand,
   FootStop: { target: 'footMotor', value: [0x00] } as RevCBCommand,
+
+  // Move directly to an absolute position (0-100ish, matching the raw range the
+  // position sensors report) and stop automatically on arrival - confirmed via live
+  // capture of the official app's position slider. Written to the same characteristic
+  // used for position feedback (it's dual-purpose: read/notify current position,
+  // write to set a new target).
+  HeadTo: (position: number): RevCBCommand => ({ target: 'headPosition', value: [position] }),
+  FootTo: (position: number): RevCBCommand => ({ target: 'footPosition', value: [position] }),
 
   // 0 = off, 1-100 = brightness.
   Light: (brightness: number): RevCBCommand => ({ target: 'light', value: [brightness] }),
