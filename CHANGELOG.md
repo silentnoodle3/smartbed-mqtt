@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.10
+
+**New Features**
+
+- (Docs) Add a ready-made Home Assistant dashboard template under `dashboards/` - position sliders, exact-value number entries, presets, and a dedicated page per memory slot for adjusting/saving/viewing what's stored there. Templated with `{{TOKEN}}` placeholders (entity IDs vary per install) with a full walkthrough for finding your own IDs and importing it
+
 ## v1.1.22-reverie.9
 
 **New Features**

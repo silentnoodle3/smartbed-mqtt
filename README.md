@@ -158,3 +158,10 @@ above - a one-shot GATT dumper, an interactive BLE read/write console, and a par
 part of the add-on itself; see [tools/README.md](tools/README.md) for what each one does and how to run them, useful
 if this ever needs revisiting - new presets, a different hardware revision, or helping someone else with the same bed
 family debug their own setup.
+
+# Dashboard
+
+The [`dashboards/`](dashboards/) directory has a ready-made Home Assistant dashboard for this add-on's entities -
+position sliders, exact-value number entries, presets, and a dedicated page per memory slot for adjusting, saving,
+and seeing what's currently stored there. It's a template (entity IDs vary per install), with a full walkthrough in
+[dashboards/README.md](dashboards/README.md) for finding your own entity IDs and importing it.

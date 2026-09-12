@@ -1,0 +1,344 @@
+# Reverie RevCB dashboard template
+#
+# This is NOT ready to paste as-is - every {{TOKEN}} below needs to be replaced with
+# one of YOUR OWN entity IDs first. See dashboards/README.md for the full walkthrough
+# (how to find your entity IDs, how to import this, and why the tokens exist instead
+# of real example IDs - entity IDs vary per install, including some unpredictable
+# ones that only show up as a naming collision on your specific Home Assistant
+# instance).
+#
+# Tokens used below (find each one's real entity ID in Settings -> Devices &
+# Services -> Entities, filtered to your Reverie Bed device, then find & replace
+# every occurrence of the token with it):
+#
+#   {{HEAD_COVER}}              cover     "Head"
+#   {{FOOT_COVER}}               cover     "Feet"
+#   {{HEAD_TARGET}}              number    "Head Target"
+#   {{FOOT_TARGET}}              number    "Foot Target"
+#   {{PRESET_FLAT}}              button    "Preset: Flat"
+#   {{PRESET_ZERO_G}}            button    "Preset: Zero G"
+#   {{PRESET_ANTI_SNORE}}        button    "Preset: Anti Snore"
+#   {{PRESET_MEMORY_1}}          button    "Preset: Memory 1"
+#   {{PRESET_MEMORY_2}}          button    "Preset: Memory 2"
+#   {{PRESET_MEMORY_3}}          button    "Preset: Memory 3"
+#   {{PRESET_MEMORY_4}}          button    "Preset: Memory 4"
+#   {{PROGRAM_MEMORY_1}}         button    "Program: Memory 1"
+#   {{PROGRAM_MEMORY_2}}         button    "Program: Memory 2"
+#   {{PROGRAM_MEMORY_3}}         button    "Program: Memory 3"
+#   {{PROGRAM_MEMORY_4}}         button    "Program: Memory 4"
+#   {{MEMORY_1_HEAD_POSITION}}   sensor    "Memory 1 Head Position"
+#   {{MEMORY_1_FOOT_POSITION}}   sensor    "Memory 1 Foot Position"
+#   {{MEMORY_2_HEAD_POSITION}}   sensor    "Memory 2 Head Position"
+#   {{MEMORY_2_FOOT_POSITION}}   sensor    "Memory 2 Foot Position"
+#   {{MEMORY_3_HEAD_POSITION}}   sensor    "Memory 3 Head Position"
+#   {{MEMORY_3_FOOT_POSITION}}   sensor    "Memory 3 Foot Position"
+#   {{MEMORY_4_HEAD_POSITION}}   sensor    "Memory 4 Head Position"
+#   {{MEMORY_4_FOOT_POSITION}}   sensor    "Memory 4 Foot Position"
+#   {{UNDER_BED_LIGHTS}}         switch    "Under Bed Lights"
+#   {{DASHBOARD_PATH}}           (not an entity - see README, this is your new
+#                                 dashboard's own URL slug, used so the Memory
+#                                 buttons' long-press can jump to the right tab)
+
+views:
+  - type: sections
+    max_columns: 4
+    title: Reverie
+    path: reverie
+    icon: mdi:bed
+    sections:
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: '## 🛏️ Reverie Bed'
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: tile
+                    entity: '{{HEAD_COVER}}'
+                    name: Head
+                    icon: mdi:head
+                    features:
+                      - type: cover-position
+                  - type: tile
+                    entity: '{{FOOT_COVER}}'
+                    name: Feet
+                    icon: mdi:foot-print
+                    features:
+                      - type: cover-position
+              - type: entities
+                title: Set Exact Position
+                entities:
+                  - entity: '{{HEAD_TARGET}}'
+                    name: Head
+                  - entity: '{{FOOT_TARGET}}'
+                    name: Foot
+              - type: markdown
+                content: '**Presets**'
+              - type: grid
+                columns: 3
+                square: false
+                cards:
+                  - show_name: true
+                    show_icon: true
+                    type: button
+                    entity: '{{PRESET_FLAT}}'
+                    name: Flat
+                    icon: mdi:bed-empty
+                    show_state: false
+                    tap_action:
+                      action: toggle
+                  - show_name: true
+                    show_icon: true
+                    type: button
+                    entity: '{{PRESET_ZERO_G}}'
+                    name: Zero G
+                    icon: mdi:weight-lifter
+                    show_state: false
+                    tap_action:
+                      action: toggle
+                  - show_name: true
+                    show_icon: true
+                    type: button
+                    entity: '{{PRESET_ANTI_SNORE}}'
+                    name: Anti-Snore
+                    icon: mdi:sleep
+                    show_state: false
+                    tap_action:
+                      action: toggle
+              - type: grid
+                columns: 4
+                square: false
+                cards:
+                  - type: button
+                    entity: '{{PRESET_MEMORY_1}}'
+                    name: Memory 1
+                    icon: mdi:numeric-1-box-outline
+                    show_state: false
+                    hold_action:
+                      action: navigate
+                      navigation_path: /{{DASHBOARD_PATH}}/reverie-memory-1
+                  - type: button
+                    entity: '{{PRESET_MEMORY_2}}'
+                    name: Memory 2
+                    icon: mdi:numeric-2-box-outline
+                    show_state: false
+                    hold_action:
+                      action: navigate
+                      navigation_path: /{{DASHBOARD_PATH}}/reverie-memory-2
+                  - type: button
+                    entity: '{{PRESET_MEMORY_3}}'
+                    name: Memory 3
+                    icon: mdi:numeric-3-box-outline
+                    show_state: false
+                    hold_action:
+                      action: navigate
+                      navigation_path: /{{DASHBOARD_PATH}}/reverie-memory-3
+                  - type: button
+                    entity: '{{PRESET_MEMORY_4}}'
+                    name: Memory 4
+                    icon: mdi:numeric-4-box-outline
+                    show_state: false
+                    hold_action:
+                      action: navigate
+                      navigation_path: /{{DASHBOARD_PATH}}/reverie-memory-4
+              - type: button
+                entity: '{{UNDER_BED_LIGHTS}}'
+                name: Under Bed Lights
+                icon: mdi:led-strip-variant
+                icon_height: 48px
+                show_state: true
+
+  - type: sections
+    title: Memory 1
+    path: reverie-memory-1
+    icon: mdi:numeric-1-box-outline
+    sections:
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: '## Memory 1'
+              - type: markdown
+                content: '**Adjust bed position**'
+              - type: entities
+                entities:
+                  - entity: '{{HEAD_TARGET}}'
+                    name: Head
+                  - entity: '{{FOOT_TARGET}}'
+                    name: Foot
+              - type: markdown
+                content: '**Save current bed position to this slot**'
+              - type: button
+                entity: '{{PROGRAM_MEMORY_1}}'
+                name: Program Memory 1
+                icon: mdi:content-save
+                icon_height: 48px
+                show_state: false
+                tap_action:
+                  action: toggle
+              - type: markdown
+                content: '**Currently saved in this slot**'
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: gauge
+                    entity: '{{MEMORY_1_HEAD_POSITION}}'
+                    name: Head
+                    min: 0
+                    max: 100
+                    needle: true
+                  - type: gauge
+                    entity: '{{MEMORY_1_FOOT_POSITION}}'
+                    name: Foot
+                    min: 0
+                    max: 100
+                    needle: true
+
+  - type: sections
+    title: Memory 2
+    path: reverie-memory-2
+    icon: mdi:numeric-2-box-outline
+    sections:
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: '## Memory 2'
+              - type: markdown
+                content: '**Adjust bed position**'
+              - type: entities
+                entities:
+                  - entity: '{{HEAD_TARGET}}'
+                    name: Head
+                  - entity: '{{FOOT_TARGET}}'
+                    name: Foot
+              - type: markdown
+                content: '**Save current bed position to this slot**'
+              - type: button
+                entity: '{{PROGRAM_MEMORY_2}}'
+                name: Program Memory 2
+                icon: mdi:content-save
+                icon_height: 48px
+                show_state: false
+                tap_action:
+                  action: toggle
+              - type: markdown
+                content: '**Currently saved in this slot**'
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: gauge
+                    entity: '{{MEMORY_2_HEAD_POSITION}}'
+                    name: Head
+                    min: 0
+                    max: 100
+                    needle: true
+                  - type: gauge
+                    entity: '{{MEMORY_2_FOOT_POSITION}}'
+                    name: Foot
+                    min: 0
+                    max: 100
+                    needle: true
+
+  - type: sections
+    title: Memory 3
+    path: reverie-memory-3
+    icon: mdi:numeric-3-box-outline
+    sections:
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: '## Memory 3'
+              - type: markdown
+                content: '**Adjust bed position**'
+              - type: entities
+                entities:
+                  - entity: '{{HEAD_TARGET}}'
+                    name: Head
+                  - entity: '{{FOOT_TARGET}}'
+                    name: Foot
+              - type: markdown
+                content: '**Save current bed position to this slot**'
+              - type: button
+                entity: '{{PROGRAM_MEMORY_3}}'
+                name: Program Memory 3
+                icon: mdi:content-save
+                icon_height: 48px
+                show_state: false
+                tap_action:
+                  action: toggle
+              - type: markdown
+                content: '**Currently saved in this slot**'
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: gauge
+                    entity: '{{MEMORY_3_HEAD_POSITION}}'
+                    name: Head
+                    min: 0
+                    max: 100
+                    needle: true
+                  - type: gauge
+                    entity: '{{MEMORY_3_FOOT_POSITION}}'
+                    name: Foot
+                    min: 0
+                    max: 100
+                    needle: true
+
+  - type: sections
+    title: Memory 4
+    path: reverie-memory-4
+    icon: mdi:numeric-4-box-outline
+    sections:
+      - type: grid
+        cards:
+          - type: vertical-stack
+            cards:
+              - type: markdown
+                content: '## Memory 4'
+              - type: markdown
+                content: '**Adjust bed position**'
+              - type: entities
+                entities:
+                  - entity: '{{HEAD_TARGET}}'
+                    name: Head
+                  - entity: '{{FOOT_TARGET}}'
+                    name: Foot
+              - type: markdown
+                content: '**Save current bed position to this slot**'
+              - type: button
+                entity: '{{PROGRAM_MEMORY_4}}'
+                name: Program Memory 4
+                icon: mdi:content-save
+                icon_height: 48px
+                show_state: false
+                tap_action:
+                  action: toggle
+              - type: markdown
+                content: '**Currently saved in this slot**'
+              - type: grid
+                columns: 2
+                square: false
+                cards:
+                  - type: gauge
+                    entity: '{{MEMORY_4_HEAD_POSITION}}'
+                    name: Head
+                    min: 0
+                    max: 100
+                    needle: true
+                  - type: gauge
+                    entity: '{{MEMORY_4_FOOT_POSITION}}'
+                    name: Foot
+                    min: 0
+                    max: 100
+                    needle: true
