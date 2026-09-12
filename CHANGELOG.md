@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.11
+
+**Bug Fixes**
+
+- (Common) Properly fix `MQTTConnection.publish()` for primitive (non-object) payloads - a number/boolean now gets stringified like everything else, instead of reaching the mqtt client raw and throwing `ERR_INVALID_ARG_TYPE`. This was the underlying gap behind the position-sensor crash fixed back in `1.1.22-reverie.2`, worked around locally there at the time rather than fixed at the source; fixed properly here now
+
 ## v1.1.22-reverie.10
 
 **New Features**

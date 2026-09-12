@@ -129,10 +129,6 @@ You must specify at least one bleProxy as demonstrated in the config defaults. Y
 - Covers with a real position slider for the head/feet motors - drag to a value and the bed drives there and stops on its own, plus open/close (to 100/0) and stop (interrupts an in-progress move)
 - Number entities (numeric text box) as an alternative to the cover's slider for typing an exact head/foot position
 
-## Possible future features:
-
-- Calibrated head/foot angle (in degrees) once the true min/max range is known
-
 ## Notes
 
 Reverse engineered from a live BLE capture (Android HCI snoop log) of the official Reverie Nightstand app. Unlike the `simple` Reverie variant, there is no shared header/checksum command framing - each function (presets, head motor, foot motor, light) is its own GATT characteristic, and values are written directly.

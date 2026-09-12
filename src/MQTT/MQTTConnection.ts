@@ -33,6 +33,13 @@ export class MQTTConnection extends EventEmitter implements IMQTTConnection {
   publish(topic: string, message: any, retain: boolean = false) {
     if (message instanceof Object) {
       message = JSON.stringify(message);
+    } else if (typeof message !== 'string' && !(message instanceof Buffer)) {
+      // A primitive number/boolean/etc isn't `instanceof Object`, so it would
+      // otherwise reach the mqtt client unstringified and throw ERR_INVALID_ARG_TYPE
+      // (it requires a string or Buffer payload) - crashing the whole add-on, not
+      // just this one publish call, since that's an uncaught exception. Found via
+      // Reverie's position sensors, worked around locally there, fixed properly here.
+      message = String(message);
     }
     this.client.publish(topic, message, { qos: 1, retain });
   }
