@@ -117,6 +117,8 @@ views:
                     name: Memory 1
                     icon: mdi:numeric-1-box-outline
                     show_state: false
+                    tap_action:
+                      action: toggle
                     hold_action:
                       action: navigate
                       navigation_path: /{{DASHBOARD_PATH}}/reverie-memory-1
@@ -125,6 +127,8 @@ views:
                     name: Memory 2
                     icon: mdi:numeric-2-box-outline
                     show_state: false
+                    tap_action:
+                      action: toggle
                     hold_action:
                       action: navigate
                       navigation_path: /{{DASHBOARD_PATH}}/reverie-memory-2
@@ -133,6 +137,8 @@ views:
                     name: Memory 3
                     icon: mdi:numeric-3-box-outline
                     show_state: false
+                    tap_action:
+                      action: toggle
                     hold_action:
                       action: navigate
                       navigation_path: /{{DASHBOARD_PATH}}/reverie-memory-3
@@ -141,6 +147,8 @@ views:
                     name: Memory 4
                     icon: mdi:numeric-4-box-outline
                     show_state: false
+                    tap_action:
+                      action: toggle
                     hold_action:
                       action: navigate
                       navigation_path: /{{DASHBOARD_PATH}}/reverie-memory-4

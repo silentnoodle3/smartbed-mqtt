@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.12
+
+**Bug Fixes**
+
+- (Docs) Fix the "Preset: Memory 1-4" recall buttons in the dashboard template not doing anything when tapped - same `tap_action: toggle` gap as the Program buttons, just missed on this set when the dashboard was first built. Dashboard-only change, no add-on code affected
+
 ## v1.1.22-reverie.11
 
 **Bug Fixes**
