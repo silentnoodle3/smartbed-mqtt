@@ -80,6 +80,8 @@ const strings = {
   MemoryPosition3Foot: 'Memory 3 Foot Position',
   MemoryPosition4Head: 'Memory 4 Head Position',
   MemoryPosition4Foot: 'Memory 4 Foot Position',
+  HeadTarget: 'Head Target',
+  FootTarget: 'Foot Target',
   SafetyLights: 'Safety Lights',
   SafetyLightsToggle: 'Toggle Safety Lights',
   UnderBedLightsToggle: 'Toggle Under Bed Lights',

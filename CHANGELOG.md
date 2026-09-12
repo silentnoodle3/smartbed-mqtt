@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.9
+
+**New Features**
+
+- (Reverie RevCB) Add "Head Target"/"Foot Target" number entities - a numeric text box alternative to dragging the position cover's slider, for typing an exact value directly. Stays in sync with the bed's actual position regardless of how it was actually moved (this box, the cover slider, a preset, or a memory recall), since it listens to the same live position notify events as everything else
+- (Common) Add an optional `mode` option to `NumberSlider` (`'slider' | 'box' | 'auto'`, matching the MQTT `number` entity's own mode config), defaulting to `'slider'` - zero behavior change for every existing caller
+
 ## v1.1.22-reverie.8
 
 **New Features**

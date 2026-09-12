@@ -8,6 +8,7 @@ export type NumberSliderConfig = {
   min?: number;
   max?: number;
   icon?: string;
+  mode?: 'slider' | 'box' | 'auto';
 };
 
 export class NumberSlider extends StatefulEntity<number> {
@@ -15,17 +16,19 @@ export class NumberSlider extends StatefulEntity<number> {
   private min: number;
   private max: number;
   private icon?: string;
+  private mode: 'slider' | 'box' | 'auto';
 
   constructor(
     mqtt: IMQTTConnection,
     deviceData: IDeviceData,
-    { min = 0, max = 100, icon, ...config }: EntityConfig & NumberSliderConfig,
+    { min = 0, max = 100, icon, mode = 'slider', ...config }: EntityConfig & NumberSliderConfig,
     onChange: (state: number) => Promise<void | number>
   ) {
     super(mqtt, deviceData, config, 'number');
     this.min = min;
     this.max = max;
     this.icon = icon;
+    this.mode = mode;
     this.commandTopic = `${this.baseTopic}/command`;
 
     mqtt.subscribe(this.commandTopic);
@@ -49,7 +52,7 @@ export class NumberSlider extends StatefulEntity<number> {
     return {
       ...super.discoveryState(),
       command_topic: this.commandTopic,
-      mode: 'slider',
+      mode: this.mode,
       icon: this.icon,
       min: this.min,
       max: this.max,

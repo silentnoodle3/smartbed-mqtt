@@ -79,6 +79,7 @@ A new device in Home Assistant (named whatever you set `friendlyName` to) with:
 - Buttons: **Preset: Zero G**, **Preset: Anti Snore**, **Preset: Flat**, **Preset: Memory 1-4**
 - An **Under Bed Lights** switch
 - **MotorHead** / **MotorFeet** covers with a real position slider - drag to a value and the bed drives there and stops on its own, the same way the official app's slider works
+- **Head Target** / **Foot Target** number entities - a numeric text box alternative to dragging the cover's slider, for typing an exact value. Stays in sync with the bed's actual position no matter how it was moved (this box, the cover slider, a preset, or a memory recall)
 - **Head Position** / **Foot Position** sensors (raw position counters from the bed - not calibrated to real degrees)
 - **Program: Memory 1-4** buttons (tucked into Home Assistant's Configuration entity category, since it's a save action) and matching **Memory N Head/Foot Position** sensors - the bed itself never reports what's stored in a memory slot, so the add-on captures its own live position sensors at the moment you press Program and remembers it (persisted to disk, so it survives an add-on restart)
 
@@ -126,6 +127,7 @@ You must specify at least one bleProxy as demonstrated in the config defaults. Y
 - Switch to control the under bed light
 - Sensors reporting raw head/foot position
 - Covers with a real position slider for the head/feet motors - drag to a value and the bed drives there and stops on its own, plus open/close (to 100/0) and stop (interrupts an in-progress move)
+- Number entities (numeric text box) as an alternative to the cover's slider for typing an exact head/foot position
 
 ## Possible future features:
 
