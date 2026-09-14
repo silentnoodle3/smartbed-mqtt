@@ -2,6 +2,7 @@ import { IMQTTConnection } from '@mqtt/IMQTTConnection';
 import { buildDictionary } from '@utils/buildDictionary';
 import { logError, logInfo } from '@utils/logger';
 import { BLEController } from 'BLE/BLEController';
+import { setupConnectionAvailability } from 'BLE/setupConnectionAvailability';
 import { setupDeviceInfoSensor } from 'BLE/setupDeviceInfoSensor';
 import { buildMQTTDeviceData } from 'Common/buildMQTTDeviceData';
 import { IESPConnection } from 'ESPHome/IESPConnection';
@@ -43,6 +44,8 @@ export const motosleep = async (mqtt: IMQTTConnection, esphome: IESPConnection) 
       {},
       device.stayConnected
     );
+    if (controller.isPersistentConnection) setupConnectionAvailability(mqtt, bleDevice, deviceData);
+
     logInfo('[MotoSleep] Setting up entities for device:', name);
     const { simpleCommands, complexCommands } = buildCommands(name);
     setupButtonEntities(mqtt, controller, simpleCommands);

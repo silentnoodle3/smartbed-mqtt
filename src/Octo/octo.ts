@@ -3,6 +3,7 @@ import { buildDictionary } from '@utils/buildDictionary';
 import { Deferred } from '@utils/deferred';
 import { logError, logInfo } from '@utils/logger';
 import { BLEController } from 'BLE/BLEController';
+import { setupConnectionAvailability } from 'BLE/setupConnectionAvailability';
 import { setupDeviceInfoSensor } from 'BLE/setupDeviceInfoSensor';
 import { buildMQTTDeviceData } from 'Common/buildMQTTDeviceData';
 import { IESPConnection } from 'ESPHome/IESPConnection';
@@ -67,6 +68,7 @@ export const octo = async (mqtt: IMQTTConnection, esphome: IESPConnection) => {
         feedback: characteristic.handle,
       }
     );
+    if (controller.isPersistentConnection) setupConnectionAvailability(mqtt, bleDevice, deviceData);
 
     const featureState = { hasLight: false, lightState: false, hasPin: false, pinLock: false };
     const allFeaturesReturned = new Deferred<void>();

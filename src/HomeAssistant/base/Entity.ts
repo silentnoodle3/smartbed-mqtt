@@ -64,10 +64,27 @@ export class Entity implements IAvailable {
   }
 
   protected discoveryState(): Dictionary<any> {
+    // When the device has a BLE-health availability topic (see IDeviceData.availabilityTopic),
+    // gate this entity's HA availability on BOTH it and the entity's own topic (mode "all") so
+    // the entity shows `unavailable` if the BLE link to the bed is down, not just if this add-on's
+    // MQTT client is up. Otherwise fall back to the single-topic form untouched.
+    const { availabilityTopic: deviceAvailabilityTopic } = this.deviceData;
+    const availability = deviceAvailabilityTopic
+      ? {
+          availability: [
+            { topic: this.availabilityTopic, payload_available: ONLINE, payload_not_available: OFFLINE },
+            { topic: deviceAvailabilityTopic, payload_available: ONLINE, payload_not_available: OFFLINE },
+          ],
+          availability_mode: 'all',
+        }
+      : {
+          availability_topic: this.availabilityTopic,
+          payload_available: ONLINE,
+          payload_not_available: OFFLINE,
+        };
+
     return {
-      availability_topic: this.availabilityTopic,
-      payload_available: ONLINE,
-      payload_not_available: OFFLINE,
+      ...availability,
       ...(this.entityConfig.category ? { entity_category: this.entityConfig.category } : {}),
       ...(this.entityConfig.icon ? { icon: this.entityConfig.icon } : {}),
     };

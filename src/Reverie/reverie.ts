@@ -1,6 +1,7 @@
 import { IMQTTConnection } from '@mqtt/IMQTTConnection';
 import { buildDictionary } from '@utils/buildDictionary';
 import { logError, logInfo, logWarn } from '@utils/logger';
+import { setupConnectionAvailability } from 'BLE/setupConnectionAvailability';
 import { setupDeviceInfoSensor } from 'BLE/setupDeviceInfoSensor';
 import { buildMQTTDeviceData } from 'Common/buildMQTTDeviceData';
 import { IESPConnection } from 'ESPHome/IESPConnection';
@@ -48,6 +49,8 @@ export const reverie = async (mqtt: IMQTTConnection, esphome: IESPConnection) =>
       await disconnect();
       continue;
     }
+
+    if (controller.isPersistentConnection) setupConnectionAvailability(mqtt, bleDevice, deviceData);
 
     const deviceInfo = await bleDevice.getDeviceInfo();
     if (deviceInfo) setupDeviceInfoSensor(mqtt, controller, deviceInfo);

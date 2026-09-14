@@ -1,6 +1,7 @@
 import { IMQTTConnection } from '@mqtt/IMQTTConnection';
 import { buildDictionary } from '@utils/buildDictionary';
 import { logError, logInfo, logWarn } from '@utils/logger';
+import { setupConnectionAvailability } from 'BLE/setupConnectionAvailability';
 import { setupDeviceInfoSensor } from 'BLE/setupDeviceInfoSensor';
 import { buildMQTTDeviceData } from 'Common/buildMQTTDeviceData';
 import { IESPConnection } from 'ESPHome/IESPConnection';
@@ -59,6 +60,8 @@ export const keeson = async (mqtt: IMQTTConnection, esphome: IESPConnection): Pr
       await disconnect();
       continue;
     }
+
+    if (controller.isPersistentConnection) setupConnectionAvailability(mqtt, bleDevice, deviceData);
 
     logInfo('[Keeson] Setting up entities for device:', name);
     setupPresetButtons(mqtt, controller);

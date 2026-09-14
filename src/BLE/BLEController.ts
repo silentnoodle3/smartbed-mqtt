@@ -37,6 +37,17 @@ export class BLEController<TCommand> extends EventEmitter implements IEventSourc
         this.emit(key, data);
       });
     });
+    // A device we intend to keep connected is exactly the kind whose silent staleness we can't
+    // detect any other way (see BLEDevice.startHealthMonitoring) - a device that reconnects for
+    // each command and disconnects again shortly after doesn't need active monitoring.
+    if (this.stayConnected) this.bleDevice.startHealthMonitoring();
+  }
+
+  // Whether this controller keeps its BLE connection open persistently rather than connecting
+  // per-command and disconnecting after a short idle period - see the constructor above and
+  // BLE/setupConnectionAvailability, which only wires up device-level MQTT availability when true.
+  get isPersistentConnection() {
+    return this.stayConnected;
   }
 
   private disconnect = () => this.bleDevice.disconnect();

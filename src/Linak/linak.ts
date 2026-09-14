@@ -3,6 +3,7 @@ import { Dictionary } from '@utils/Dictionary';
 import { buildDictionary } from '@utils/buildDictionary';
 import { logError, logInfo } from '@utils/logger';
 import { BLEController } from 'BLE/BLEController';
+import { setupConnectionAvailability } from 'BLE/setupConnectionAvailability';
 import { setupDeviceInfoSensor } from 'BLE/setupDeviceInfoSensor';
 import { buildEntityConfig } from 'Common/buildEntityConfig';
 import { buildMQTTDeviceData } from 'Common/buildMQTTDeviceData';
@@ -78,6 +79,8 @@ export const linak = async (mqtt: IMQTTConnection, esphome: IESPConnection) => {
       (bytes: number[]) => bytes,
       notifyHandles
     );
+    if (controller.isPersistentConnection) setupConnectionAvailability(mqtt, bleDevice, deviceData);
+
     logInfo('[Linak] Setting up entities for device:', name);
     setupLightEntities(mqtt, controller);
 

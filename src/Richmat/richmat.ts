@@ -1,6 +1,7 @@
 import { IMQTTConnection } from '@mqtt/IMQTTConnection';
 import { buildDictionary } from '@utils/buildDictionary';
 import { logError, logInfo, logWarn } from '@utils/logger';
+import { setupConnectionAvailability } from 'BLE/setupConnectionAvailability';
 import { setupDeviceInfoSensor } from 'BLE/setupDeviceInfoSensor';
 import { buildMQTTDeviceData } from 'Common/buildMQTTDeviceData';
 import { IESPConnection } from 'ESPHome/IESPConnection';
@@ -56,13 +57,14 @@ export const richmat = async (mqtt: IMQTTConnection, esphome: IESPConnection) =>
     const deviceData = buildMQTTDeviceData({ ...device, address }, 'Richmat');
     await connect();
 
-    const controller = await controllerBuilder(deviceData, bleDevice);
+    const controller = await controllerBuilder(deviceData, bleDevice, device.stayConnected);
     if (!controller) {
       await disconnect();
       continue;
     }
 
-    if (!device.stayConnected) await disconnect();
+    if (!controller.isPersistentConnection) await disconnect();
+    else setupConnectionAvailability(mqtt, bleDevice, deviceData);
 
     const hasFeature = (feature: Features) => (features & feature) === feature;
     logInfo('[Richmat] Setting up entities for device:', name);

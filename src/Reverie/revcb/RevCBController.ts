@@ -25,6 +25,11 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
   cache: Dictionary<object> = {};
   private lastPositions: Dictionary<number> = {};
 
+  // Unlike BLEController, this controller never disconnects once connected (see writeCommands) -
+  // it's always meant to stay connected persistently. BLE/setupConnectionAvailability uses this
+  // to decide whether to wire up device-level MQTT availability for the connection.
+  readonly isPersistentConnection = true;
+
   constructor(
     public deviceData: IDeviceData,
     private bleDevice: IBLEDevice,
@@ -38,6 +43,7 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
         this.emit(key, data);
       });
     });
+    this.bleDevice.startHealthMonitoring();
   }
 
   // Last known value seen on a notify key (e.g. 'headPosition'/'footPosition') -

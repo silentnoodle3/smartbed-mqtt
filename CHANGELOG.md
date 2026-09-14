@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.13
+
+**Bug Fixes**
+
+- (Common) Fix the BLE connection to a bed silently going stale after a few hours - the underlying GATT link to the bed can drop (ESP32 Bluetooth proxy or the bed itself) without ever firing a clean disconnect event, leaving the add-on's process and MQTT connection up while entities keep showing their last known value and the bed stops responding. Only a manual add-on restart used to fix it. `BLEDevice` now: (1) reacts to real disconnect/error events from the proxy connection and from the BLE peripheral link itself, kicking off an automatic reconnect; (2) runs a periodic health check (a cheap characteristic read every few minutes, opt-in via `startHealthMonitoring()`) that tears down and re-establishes the connection if it times out or fails, since that's the only way to catch a drop that never announces itself; and (3) backs off exponentially (5s up to a 5 minute cap) between repeated reconnect failures instead of hammering the proxy. Applies to every bed type that keeps its BLE connection open persistently, not just Reverie - wired through the same `stayConnected` concept Richmat/MotoSleep already had (and fixed it actually reaching `BLEController` for Richmat, where it was silently dropped before reaching the connection)
+- (Common) Home Assistant now shows entities as `unavailable` when the BLE link to the bed is actually down, instead of only reflecting whether the add-on's MQTT client is connected. Each persistently-connected device publishes a retained per-device availability topic reflecting real BLE health (`BLE/setupConnectionAvailability`), and every entity's HA discovery config now gates on both its own topic and this one (`availability_mode: "all"`). This also gives Home Assistant something real to automate against - e.g. restarting the add-on after N minutes of genuine unavailability - instead of a blind timer
+
 ## v1.1.22-reverie.12
 
 **Bug Fixes**

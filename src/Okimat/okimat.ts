@@ -3,6 +3,7 @@ import { buildDictionary } from '@utils/buildDictionary';
 import { intToBytes } from '@utils/intToBytes';
 import { logError, logInfo } from '@utils/logger';
 import { BLEController } from 'BLE/BLEController';
+import { setupConnectionAvailability } from 'BLE/setupConnectionAvailability';
 import { setupDeviceInfoSensor } from 'BLE/setupDeviceInfoSensor';
 import { buildMQTTDeviceData } from 'Common/buildMQTTDeviceData';
 import { IESPConnection } from 'ESPHome/IESPConnection';
@@ -57,6 +58,8 @@ export const okimat = async (mqtt: IMQTTConnection, esphome: IESPConnection) => 
       buildCommand,
       notifyHandles
     );
+    if (controller.isPersistentConnection) setupConnectionAvailability(mqtt, bleDevice, deviceData);
+
     logInfo('[Okimat] Setting up entities for device:', name);
     const deviceInfo = await getDeviceInfo();
     if (deviceInfo) setupDeviceInfoSensor(mqtt, controller, deviceInfo);

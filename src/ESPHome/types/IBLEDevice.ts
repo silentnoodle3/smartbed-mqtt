@@ -20,4 +20,17 @@ export interface IBLEDevice {
   subscribeToCharacteristic(handle: number, notify: (data: Uint8Array) => void): Promise<void>;
   readCharacteristic(handle: number): Promise<Uint8Array>;
   getDeviceInfo(): Promise<BLEDeviceInfo | undefined>;
+
+  // Real-time BLE link health, independent of whatever the proxy's MQTT/TCP connection is doing.
+  isConnected(): boolean;
+  // Fires whenever the BLE link to this device actually goes up/down - including a silent drop
+  // detected by the proxy or by the periodic health check below, not just an intentional
+  // connect()/disconnect() call.
+  onConnectionChange(handler: (connected: boolean) => void): void;
+  // Starts a periodic cheap read against a known characteristic to catch a connection that has
+  // gone stale without ever firing a disconnect event (the ESP32 proxy or the bed can drop the
+  // link silently). A failed/timed-out check tears down and re-establishes the connection,
+  // backing off between repeated failures instead of hammering the proxy. Intended only for
+  // devices that are meant to stay connected persistently - see IController.isPersistentConnection.
+  startHealthMonitoring(intervalMs?: number): void;
 }

@@ -82,4 +82,23 @@ describe(Entity.name, () => {
       expect(mqtt.publish).toBeCalledWith('device_topic/binary_sensor/status', 'offline');
     });
   });
+
+  describe('when the device has a BLE-health availability topic', () => {
+    it('gates discovery on both topics being online', () => {
+      const deviceWithBLEAvailability = { ...testDevice, availabilityTopic: 'device_topic/bleConnection/status' };
+      new Entity(mqtt, deviceWithBLEAvailability, { description: 'Binary Sensor' }, 'binary_sensor');
+      jest.runAllTimers();
+
+      expect(mqtt.publish).toBeCalledWith('homeassistant/binary_sensor/device_topic_binary_sensor/config', {
+        availability: [
+          { topic: 'device_topic/binary_sensor/status', payload_available: 'online', payload_not_available: 'offline' },
+          { topic: 'device_topic/bleConnection/status', payload_available: 'online', payload_not_available: 'offline' },
+        ],
+        availability_mode: 'all',
+        device: { ...testDevice.device },
+        name: 'Binary Sensor',
+        unique_id: 'test_name_binary_sensor',
+      });
+    });
+  });
 });
