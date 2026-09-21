@@ -10,9 +10,7 @@ export const connect = (connection: Connection) => {
     connection.once('authorized', async () => {
       logInfo('[ESPHome] Connected:', connection.host);
       connection.off('error', errorHandler);
-      // TODO: Fix next two lines after new version of esphome-native-api is released
-      const deviceInfo = await connection.deviceInfoService();
-      const { bluetoothProxyFeatureFlags } = deviceInfo as any;
+      const { bluetoothProxyFeatureFlags } = await connection.deviceInfoService();
       if (!bluetoothProxyFeatureFlags) {
         logError('[ESPHome] No Bluetooth proxy features detected:', connection.host);
         return reject();

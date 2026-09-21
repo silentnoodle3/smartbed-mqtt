@@ -80,6 +80,11 @@ export class ESPConnection implements IESPConnection {
     await complete;
     for (const { connection, listener } of listeners) {
       connection.off('message.BluetoothLEAdvertisementResponse', listener);
+      // Without this, the proxy keeps streaming every BLE advertisement it hears (every nearby
+      // phone/watch/etc., forever) to this client for the rest of the process's life, even though
+      // nothing is listening anymore past the one-time device scan above - pure waste at best, and
+      // a lot of otherwise-unnecessary traffic for the proxy connection to have to keep parsing.
+      connection.unsubscribeBluetoothAdvertisementService();
     }
   }
 }

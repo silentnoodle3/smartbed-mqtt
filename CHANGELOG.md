@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.14
+
+**Bug Fixes**
+
+- (Common) Fix the actual cause of the bed going unresponsive that v1.1.22-reverie.13's watchdog exposed but couldn't recover from: the pinned `@2colors/esphome-native-api` client library (v1.3.1) had a real bug in its frame parser - on an unrecognized/unparseable incoming message it silently returned `undefined` instead of throwing, which crashed the next line (`Cannot set properties of undefined (setting 'length')`), and never cleared its read buffer afterward (not even on reconnect), so the same corrupted bytes at the head of the buffer failed the exact same way forever. Confirmed from a live log: the proxy connection was stuck in a tight `HelloResponse` timeout / parse-error loop every ~30s for hours, immune to v13's reconnect logic because the reconnect loop it was retrying underneath - the ESPHome proxy `Connection` itself - was the thing actually broken, not the BLE peripheral link. Bumped to `@2colors/esphome-native-api@^1.3.6`, which fixes this upstream (clears its buffer on connect/close/end, and closes the socket instead of corrupting state on an unparseable message) and adds compatibility with the newer `AuthenticationRequest`/`AuthenticationResponse` handshake current ESPHome firmware versions expect instead of the legacy `ConnectRequest`/`ConnectResponse` this add-on was still sending. Also resolves the `bluetoothProxyFeatureFlags` `as any` cast in `ESPHome/connect.ts` that was left as a known TODO waiting on exactly this
+- (Common) Stop leaking the BLE-advertisement subscription used for the one-time device scan at startup - `ESPConnection.discoverBLEDevices()` was never calling `unsubscribeBluetoothAdvertisementService()` afterward, so the proxy kept streaming every BLE advertisement it heard (from any nearby device, not just the bed) to this add-on for the rest of the process's life with nothing listening anymore. Harmless by itself, but needless load on the exact connection that needs to stay healthy
+
 ## v1.1.22-reverie.13
 
 **Bug Fixes**

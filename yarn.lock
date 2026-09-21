@@ -2,13 +2,13 @@
 # yarn lockfile v1
 
 
-"@2colors/esphome-native-api@^1.3.1":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@2colors/esphome-native-api/-/esphome-native-api-1.3.1.tgz#9e7914dd5422b027735500fcac9e5fc03f74abb8"
-  integrity sha512-jDhL+31DCY2oY2s70QlRavdIIPtrIvDJlrvQsZPFxt9ORezGlgRc2lwRLGBrsxFPwoBPFm64cTX4FmpVmKB6VQ==
+"@2colors/esphome-native-api@^1.3.6":
+  version "1.3.6"
+  resolved "https://registry.yarnpkg.com/@2colors/esphome-native-api/-/esphome-native-api-1.3.6.tgz#3b8dc146bca0ffae27dbf8fc9b28b96b2066a4f4"
+  integrity sha512-UnWullIsfmF5txBcgZOKIpAV4ip3Kei+to7YakYX4z1I2mJrYXh91nmhgxH8aIQkqOF0tZDdpuDbRnSb/v68dQ==
   dependencies:
     "@richardhopton/noise-c.wasm" "^0.5.0"
-    google-protobuf "^3.21.2"
+    google-protobuf "^4.0.0"
     multicast-dns "^7.2.5"
 
 "@ampproject/remapping@^2.2.0":
@@ -1953,10 +1953,10 @@ globby@^11.0.4, globby@^11.1.0:
     merge2 "^1.4.1"
     slash "^3.0.0"
 
-google-protobuf@^3.21.2:
-  version "3.21.2"
-  resolved "https://registry.yarnpkg.com/google-protobuf/-/google-protobuf-3.21.2.tgz#4580a2bea8bbb291ee579d1fefb14d6fa3070ea4"
-  integrity sha512-3MSOYFO5U9mPGikIYCzK0SaThypfGgS6bHqrUGXG3DPHCrb+txNqeEcns1W0lkGfk0rCyNXm7xB9rMxnCiZOoA==
+google-protobuf@^4.0.0:
+  version "4.0.3"
+  resolved "https://registry.yarnpkg.com/google-protobuf/-/google-protobuf-4.0.3.tgz#10894e7dccf3b3cd5338922da0e1366f81987163"
+  integrity sha512-DI6iiRmF8fE/EzvGK5F9b8RxZeumHC2AAhi3xwOEh+GT5eRhJeW1aOtkDxn0W7cVCFQAtwK+ZDwIO1BYz+9WMA==
 
 graceful-fs@^4.2.9:
   version "4.2.11"
