@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.17
+
+**Diagnostics**
+
+- (Common) Reverted `.16`'s `useCache: true` experiment back to the library default (`false`). Watching the ESPHome proxy's own live debug log during a connect attempt (not just this add-on's logs) showed the `.16` theory was wrong: it's not slow GATT discovery blocking the response - the proxy accepts the connect request, starts connecting, then schedules and runs its own disconnect after only ~100ms, before any connection ever stabilizes, on every single attempt. That's proxy-side behavior neither the add-on nor the `useCache` flag controls. Reverting this variable to get a clean before/after comparison with proxy-side logs on both sides while the real cause gets diagnosed further
+
 ## v1.1.22-reverie.16
 
 **Bug Fixes (experimental)**

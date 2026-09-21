@@ -197,14 +197,13 @@ export class BLEDevice implements IBLEDevice {
   private connectWithRetry = async (attempt: number = 1): Promise<void> => {
     const { addressType } = this.advertisement;
     try {
-      // The library's default (useCache: false, i.e. "connect v3 without cache") makes the proxy
-      // run a full fresh GATT service discovery as part of connecting, before it's even allowed to
-      // reply that it's connected. For a device with a lot of characteristics on one service (like
-      // this one), that discovery can apparently take longer than the client's fixed wait for a
-      // response - producing a connect that hangs/times out every single time, deterministically,
-      // regardless of proxy reboots or anything else client-side. Requesting the cached variant
-      // skips that re-discovery.
-      await this.connection.connectBluetoothDeviceService(this.address, addressType, true);
+      // Reverted from useCache: true (v16) - proxy-side debug logs showed it wasn't slow GATT
+      // discovery causing the client-side timeout after all: the proxy accepts the connect request
+      // and starts connecting, but self-aborts (schedules and runs its own disconnect) after only
+      // ~100ms, before a connection ever stabilizes, every single attempt - something neither this
+      // add-on nor useCache controls. Back to the library's default (false / "without cache") while
+      // that gets diagnosed further with matching proxy-side visibility.
+      await this.connection.connectBluetoothDeviceService(this.address, addressType, false);
     } catch (e) {
       if (attempt >= CONNECT_ATTEMPTS) throw e;
       logWarn(`[BLE] Connect attempt ${attempt}/${CONNECT_ATTEMPTS} failed for ${this.name}, retrying:`, e);
