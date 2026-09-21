@@ -54,27 +54,37 @@ const start = async () => {
   }
   // bluetooth
   const esphome = await connectToESPHome();
-  switch (getType()) {
-    case 'richmat':
-      return void (await richmat(mqtt, esphome));
-    case 'linak':
-      return void (await linak(mqtt, esphome));
-    case 'solace':
-      return void (await solace(mqtt, esphome));
-    case 'motosleep':
-      return void (await motosleep(mqtt, esphome));
-    case 'reverie':
-      return void (await reverie(mqtt, esphome));
-    case 'leggettplatt':
-      return void (await leggettplatt(mqtt, esphome));
-    case 'okimat':
-      return void (await okimat(mqtt, esphome));
-    case 'keeson':
-      return void (await keeson(mqtt, esphome));
-    case 'octo':
-      return void (await octo(mqtt, esphome));
-    case 'scanner':
-      return void (await scanner(esphome));
+  // A single device failing to connect (e.g. a transient BLE hiccup at startup) must never take
+  // down the whole add-on - that's the same "one bad link shouldn't kill everything" goal as the
+  // BLE reconnect/health-check work itself, just one level up. Without this, an error here used to
+  // become an unhandled rejection that crashed the entire process (killing the MQTT connection and
+  // every other already-working device along with it) instead of staying up so devices that did
+  // connect keep working and Supervisor doesn't need to notice and restart the container.
+  try {
+    switch (getType()) {
+      case 'richmat':
+        return void (await richmat(mqtt, esphome));
+      case 'linak':
+        return void (await linak(mqtt, esphome));
+      case 'solace':
+        return void (await solace(mqtt, esphome));
+      case 'motosleep':
+        return void (await motosleep(mqtt, esphome));
+      case 'reverie':
+        return void (await reverie(mqtt, esphome));
+      case 'leggettplatt':
+        return void (await leggettplatt(mqtt, esphome));
+      case 'okimat':
+        return void (await okimat(mqtt, esphome));
+      case 'keeson':
+        return void (await keeson(mqtt, esphome));
+      case 'octo':
+        return void (await octo(mqtt, esphome));
+      case 'scanner':
+        return void (await scanner(esphome));
+    }
+  } catch (e) {
+    logError('Failed to set up one or more devices:', e);
   }
 };
 void start();

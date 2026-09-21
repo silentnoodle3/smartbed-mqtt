@@ -70,6 +70,35 @@ describe(BLEDevice.name, () => {
     expect(connection.connectBluetoothDeviceService).toHaveBeenCalledWith(advertisement.address, advertisement.addressType);
   });
 
+  it('retries a transient failure on the very first connect() instead of throwing immediately', async () => {
+    const connection = buildConnection();
+    connection.connectBluetoothDeviceService
+      .mockRejectedValueOnce(new Error('sendMessage timeout waiting for BluetoothDeviceConnectionResponse'))
+      .mockResolvedValueOnce({ address: advertisement.address, connected: true, mtu: 0, error: 0 });
+    const device = new BLEDevice('Test', advertisement, connection);
+
+    const connectPromise = device.connect();
+    await advanceTimersByTimeAsync(3_000); // the in-attempt retry delay
+
+    await connectPromise;
+    expect(device.isConnected()).toBe(true);
+    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after exhausting its retries on the very first connect(), without hanging forever', async () => {
+    const connection = buildConnection();
+    connection.connectBluetoothDeviceService.mockRejectedValue(new Error('sendMessage timeout waiting for BluetoothDeviceConnectionResponse'));
+    const device = new BLEDevice('Test', advertisement, connection);
+
+    const connectPromise = device.connect();
+    const assertion = expect(connectPromise).rejects.toThrow('sendMessage timeout');
+    await advanceTimersByTimeAsync(3_000 + 3_000);
+    await assertion;
+
+    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(3);
+    expect(device.isConnected()).toBe(false);
+  });
+
   it('does not re-enter connect() when the proxy echoes back our own connect() response', async () => {
     const connection = buildConnection();
     // Mirrors real esphome-native-api behaviour: the response to our request is also broadcast to
@@ -128,7 +157,7 @@ describe(BLEDevice.name, () => {
     expect(connection.connectBluetoothDeviceService).not.toHaveBeenCalled();
   });
 
-  it('backs off exponentially while repeated reconnect attempts keep failing', async () => {
+  it('retries a bounded number of times within a single attempt before backing off for the next one', async () => {
     const connection = buildConnection();
     const device = new BLEDevice('Test', advertisement, connection);
     await device.connect();
@@ -137,20 +166,23 @@ describe(BLEDevice.name, () => {
     connection.connectBluetoothDeviceService.mockRejectedValue(new Error('proxy unreachable'));
     emitConnectionResponse(connection, false);
 
-    await advanceTimersByTimeAsync(5_000); // 1st attempt (initial backoff), fails
-    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(1);
+    // 1st reconnect attempt fires after the initial 5s backoff, then retries internally (3 tries,
+    // 3s apart) before finally giving up on this attempt and scheduling the next one.
+    await advanceTimersByTimeAsync(5_000 + 3_000 + 3_000);
+    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(3);
+    expect(device.isConnected()).toBe(false);
 
-    await advanceTimersByTimeAsync(10_000); // 2nd attempt (backoff doubled to 10s), fails
-    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(2);
-
+    connection.connectBluetoothDeviceService.mockClear();
     connection.connectBluetoothDeviceService.mockResolvedValue({
       address: advertisement.address,
       connected: true,
       mtu: 0,
       error: 0,
     });
-    await advanceTimersByTimeAsync(20_000); // 3rd attempt (backoff doubled to 20s), succeeds
-    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(3);
+
+    // 2nd reconnect attempt fires after the doubled 10s backoff and succeeds on its first try.
+    await advanceTimersByTimeAsync(10_000);
+    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(1);
     expect(device.isConnected()).toBe(true);
   });
 

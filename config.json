@@ -1,6 +1,6 @@
 {
   "name": "Smartbed MQTT Reverie",
-  "version": "1.1.22-reverie.14",
+  "version": "1.1.22-reverie.15",
   "slug": "smartbed-mqtt-reverie",
   "description": "A Home Assistant add-on to enable controlling smart beds. Fork of smartbed-mqtt adding Reverie RevCB control box support.",
   "url": "https://github.com/silentnoodle3/smartbed-mqtt",

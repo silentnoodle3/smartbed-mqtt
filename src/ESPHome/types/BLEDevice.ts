@@ -6,6 +6,7 @@ import { IBLEDevice } from './IBLEDevice';
 import { logError, logInfo, logWarn } from '@utils/logger';
 import { minutes } from '@utils/minutes';
 import { seconds } from '@utils/seconds';
+import { wait } from '@utils/wait';
 import { withTimeout } from '@utils/withTimeout';
 import EventEmitter from 'events';
 
@@ -16,6 +17,13 @@ const HEALTH_CHECK_TIMEOUT = seconds(10);
 const DEFAULT_HEALTH_CHECK_INTERVAL = minutes(3);
 const INITIAL_RECONNECT_BACKOFF = seconds(5);
 const MAX_RECONNECT_BACKOFF = minutes(5);
+// A single connect() attempt can transiently time out - e.g. the proxy briefly still holding a
+// session for this address from a connection it thinks is still open (such as right after this
+// add-on itself restarts without ever cleanly disconnecting). A few quick retries absorb that
+// without surfacing a failure to the caller at all; genuine unreachability still eventually
+// surfaces so callers can react (index.ts won't hang forever waiting on a truly absent device).
+const CONNECT_ATTEMPTS = 3;
+const CONNECT_RETRY_DELAY = seconds(3);
 
 export class BLEDevice implements IBLEDevice {
   private connected = false;
@@ -178,12 +186,23 @@ export class BLEDevice implements IBLEDevice {
   connect = async () => {
     this.transitioning = true;
     try {
-      const { addressType } = this.advertisement;
-      await this.connection.connectBluetoothDeviceService(this.address, addressType);
+      await this.connectWithRetry();
       this.updateConnectedState(true, 'connect() succeeded');
       if (this.paired) await this.pair();
     } finally {
       this.transitioning = false;
+    }
+  };
+
+  private connectWithRetry = async (attempt: number = 1): Promise<void> => {
+    const { addressType } = this.advertisement;
+    try {
+      await this.connection.connectBluetoothDeviceService(this.address, addressType);
+    } catch (e) {
+      if (attempt >= CONNECT_ATTEMPTS) throw e;
+      logWarn(`[BLE] Connect attempt ${attempt}/${CONNECT_ATTEMPTS} failed for ${this.name}, retrying:`, e);
+      await wait(CONNECT_RETRY_DELAY);
+      await this.connectWithRetry(attempt + 1);
     }
   };
 

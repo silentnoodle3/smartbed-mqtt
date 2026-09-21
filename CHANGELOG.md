@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.15
+
+**Bug Fixes**
+
+- (Common) Fix the add-on crashing and stopping entirely (instead of recovering) if the very first BLE connect attempt at startup times out - which is exactly what happened updating into `.14`: the library fix worked (no more parse-error crash loop), but the first `connectBluetoothDeviceService` call still timed out once, almost certainly leftover state on the proxy from the old crash loop never having cleanly disconnected. Nothing caught that failure, so it became an uncaught exception that killed the whole process (MQTT connection and all). Two fixes: `BLEDevice.connect()` now retries a transient failure up to 3 times (3s apart) before giving up, absorbing exactly this kind of one-off blip silently; and `index.ts` no longer lets any single device's setup failure take down the whole add-on - it's now caught and logged, so MQTT and every other already-working device stay up instead of the entire container dying
+
 ## v1.1.22-reverie.14
 
 **Bug Fixes**
