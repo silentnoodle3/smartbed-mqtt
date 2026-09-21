@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.16
+
+**Bug Fixes (experimental)**
+
+- (Common) After `.15`, one device (a Reverie RevCB bed with many characteristics on one custom service) was still deterministically timing out on `BluetoothDeviceConnectionResponse` on every single connect attempt - proxy healthy, advertisement discovery instant, proxy reboot didn't help, phone's official app connected to the bed instantly. Root cause candidate: the `1.3.6` library bump necessarily switched the BLE connect request from the old `CONNECT` type (formally deprecated/removed upstream - "V1 removed, use V3 variants") to the new `CONNECT_V3_WITHOUT_CACHE`, which makes the proxy run a full fresh GATT service discovery as part of connecting, before it can even reply "connected". For a device with a lot of characteristics on one service, that discovery may now take longer than the client's fixed wait for a response. Switched to requesting `CONNECT_V3_WITH_CACHE` instead, which skips that re-discovery. Marked experimental because it addresses the most likely mechanism given the evidence, not something bench-confirmed against this specific bed yet
+
 ## v1.1.22-reverie.15
 
 **Bug Fixes**

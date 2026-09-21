@@ -42,5 +42,5 @@ LABEL \
     io.hass.name="Smartbed MQTT Reverie" \
     io.hass.description="Home Assistant Community Add-on for Smartbeds (fork adding Reverie RevCB support)" \
     io.hass.type="addon" \
-    io.hass.version="1.1.22-reverie.15" \
+    io.hass.version="1.1.22-reverie.16" \
     maintainer="silentnoodle3"

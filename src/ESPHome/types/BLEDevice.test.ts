@@ -67,7 +67,7 @@ describe(BLEDevice.name, () => {
     await device.connect();
 
     expect(device.isConnected()).toBe(true);
-    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledWith(advertisement.address, advertisement.addressType);
+    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledWith(advertisement.address, advertisement.addressType, true);
   });
 
   it('retries a transient failure on the very first connect() instead of throwing immediately', async () => {
