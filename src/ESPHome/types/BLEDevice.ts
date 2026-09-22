@@ -2,7 +2,7 @@ import { BluetoothGATTService, Connection } from '@2colors/esphome-native-api';
 import { Dictionary } from '@utils/Dictionary';
 import { BLEAdvertisement } from './BLEAdvertisement';
 import { BLEDeviceInfo } from './BLEDeviceInfo';
-import { IBLEDevice } from './IBLEDevice';
+import { BLEConnectionStats, IBLEDevice } from './IBLEDevice';
 import { logError, logInfo, logWarn } from '@utils/logger';
 import { minutes } from '@utils/minutes';
 import { seconds } from '@utils/seconds';
@@ -46,6 +46,10 @@ export class BLEDevice implements IBLEDevice {
   // Characteristic handles we've been asked to receive notifications on, so they can be re-enabled
   // on the device after a reconnect (see restoreNotifySubscriptions).
   private notifyHandles: number[] = [];
+
+  private disconnectCount = 0;
+  private connectedSince?: Date;
+  private lastDisconnectAt?: Date;
 
   private connectionEmitter = new EventEmitter();
   private reconnectTimer?: NodeJS.Timeout;
@@ -99,8 +103,12 @@ export class BLEDevice implements IBLEDevice {
     if (connected) {
       logInfo(`[BLE] Connected (${reason}):`, this.name);
       this.reconnectBackoff = INITIAL_RECONNECT_BACKOFF;
+      this.connectedSince = new Date();
     } else {
       logWarn(`[BLE] Disconnected (${reason}):`, this.name);
+      this.disconnectCount++;
+      this.lastDisconnectAt = new Date();
+      this.connectedSince = undefined;
     }
     this.connectionEmitter.emit('connectionChange', connected);
     if (!connected) this.scheduleReconnect();
@@ -124,6 +132,18 @@ export class BLEDevice implements IBLEDevice {
   };
 
   isConnected = () => this.connected;
+
+  getConnectionStats = (): BLEConnectionStats => ({
+    connected: this.connected,
+    connectedSince: this.connectedSince,
+    lastDisconnectAt: this.lastDisconnectAt,
+    disconnectCount: this.disconnectCount,
+  });
+
+  refreshNotifySubscriptions = async () => {
+    if (!this.connected) return;
+    await this.restoreNotifySubscriptions();
+  };
 
   onConnectionChange = (handler: (connected: boolean) => void) => {
     this.connectionEmitter.on('connectionChange', handler);

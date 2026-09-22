@@ -2,12 +2,28 @@ import { IMQTTConnection } from '@mqtt/IMQTTConnection';
 import { IBLEDevice } from 'ESPHome/types/IBLEDevice';
 import { mock } from 'jest-mock-extended';
 import { testDevice } from '@utils/testHelpers';
+import { loadStrings } from '@utils/getString';
 import { setupConnectionAvailability } from './setupConnectionAvailability';
 
+const buildBleDevice = (connected: boolean = true, disconnectCount: number = 0) => {
+  const bleDevice = mock<IBLEDevice>();
+  bleDevice.isConnected.mockReturnValue(connected);
+  bleDevice.getConnectionStats.mockReturnValue({ connected, disconnectCount });
+  return bleDevice;
+};
+
 describe(setupConnectionAvailability.name, () => {
+  // Without this, getString() falls back to returning the raw key, which changes the entity
+  // descriptions and therefore the topic slugs derived from them - so the diagnostic topics
+  // asserted below wouldn't match what actually gets published in production.
+  beforeAll(async () => {
+    await loadStrings();
+    jest.useFakeTimers();
+  });
+
   it('does nothing when the device has no availability topic', () => {
     const mqtt = mock<IMQTTConnection>();
-    const bleDevice = mock<IBLEDevice>();
+    const bleDevice = buildBleDevice();
     const deviceData = { ...testDevice, availabilityTopic: undefined };
 
     setupConnectionAvailability(mqtt, bleDevice, deviceData);
@@ -19,8 +35,7 @@ describe(setupConnectionAvailability.name, () => {
 
   it('publishes the current state immediately, retained, and starts health monitoring', () => {
     const mqtt = mock<IMQTTConnection>();
-    const bleDevice = mock<IBLEDevice>();
-    bleDevice.isConnected.mockReturnValue(true);
+    const bleDevice = buildBleDevice();
     const deviceData = { ...testDevice, availabilityTopic: 'device_topic/bleConnection/status' };
 
     setupConnectionAvailability(mqtt, bleDevice, deviceData);
@@ -31,8 +46,7 @@ describe(setupConnectionAvailability.name, () => {
 
   it('republishes offline/online as the BLE connection state changes', () => {
     const mqtt = mock<IMQTTConnection>();
-    const bleDevice = mock<IBLEDevice>();
-    bleDevice.isConnected.mockReturnValue(true);
+    const bleDevice = buildBleDevice();
     let onChange: (connected: boolean) => void = () => {};
     bleDevice.onConnectionChange.mockImplementation((handler) => (onChange = handler));
     const deviceData = { ...testDevice, availabilityTopic: 'device_topic/bleConnection/status' };
@@ -45,5 +59,32 @@ describe(setupConnectionAvailability.name, () => {
 
     onChange(true);
     expect(mqtt.publish).toHaveBeenCalledWith('device_topic/bleConnection/status', 'online', true);
+  });
+
+  it('publishes connection diagnostics, and republishes them as the connection changes', () => {
+    const mqtt = mock<IMQTTConnection>();
+    const connectedSince = new Date('2026-09-22T00:50:13.000Z');
+    const lastDisconnectAt = new Date('2026-09-22T02:31:26.000Z');
+    const bleDevice = buildBleDevice();
+    bleDevice.getConnectionStats.mockReturnValue({ connected: true, connectedSince, lastDisconnectAt, disconnectCount: 3 });
+    let onChange: (connected: boolean) => void = () => {};
+    bleDevice.onConnectionChange.mockImplementation((handler) => (onChange = handler));
+    const deviceData = { ...testDevice, availabilityTopic: 'device_topic/bleConnection/status' };
+
+    setupConnectionAvailability(mqtt, bleDevice, deviceData);
+    jest.runAllTimers();
+
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_disconnects/state', 3);
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_connected_since/state', connectedSince.toISOString());
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_last_disconnect/state', lastDisconnectAt.toISOString());
+
+    // A drop should bump the count and clear "connected since" rather than leave a stale value.
+    bleDevice.getConnectionStats.mockReturnValue({ connected: false, lastDisconnectAt, disconnectCount: 4 });
+    mqtt.publish.mockClear();
+    onChange(false);
+    jest.runAllTimers();
+
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_disconnects/state', 4);
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_connected_since/status', 'offline');
   });
 });

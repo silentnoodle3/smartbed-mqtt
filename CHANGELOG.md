@@ -2,6 +2,14 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.23
+
+**New Features**
+
+- (Reverie RevCB) Notification watchdog. The periodic health check proves the *connection* is alive, but nothing proved *notifications* were - and they fail independently and completely silently, with writes still working while every live-feedback entity quietly freezes (exactly the `.21`/`.22` failure mode). Anything that moves the bed should produce position notifications within a moment, so after each movement command the add-on now checks that one arrived, and re-enables notifications if not. Rate-limited to at most once a minute, since a command that moves nothing (a preset the bed is already in) legitimately produces no notifications; re-subscribing is idempotent, so a false positive costs nothing
+- (Common) BLE connection diagnostics as Home Assistant entities: **BLE Disconnects** (count since the add-on started), **BLE Connected Since**, and **BLE Last Disconnect** (both `timestamp` sensors). Filed under the diagnostic category so they stay out of the way. Makes "how often does this actually drop?" answerable from a dashboard rather than by grepping add-on logs before they rotate. Added automatically for any persistently-connected device, so every BLE bed type gets them
+- (Common) `EntityConfig` now supports an optional `deviceClass`, passed through to MQTT discovery as `device_class` - used by the timestamp sensors above, available to any entity
+
 ## v1.1.22-reverie.22
 
 **Bug Fixes**

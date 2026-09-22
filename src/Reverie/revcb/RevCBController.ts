@@ -1,6 +1,7 @@
 import { IDeviceData } from '@ha/IDeviceData';
 import { Dictionary } from '@utils/Dictionary';
-import { logError, logInfo } from '@utils/logger';
+import { logError, logInfo, logWarn } from '@utils/logger';
+import { seconds } from '@utils/seconds';
 import { IController } from 'Common/IController';
 import { IEventSource } from 'Common/IEventSource';
 import { IBLEDevice } from 'ESPHome/types/IBLEDevice';
@@ -21,10 +22,20 @@ import EventEmitter from 'events';
 export type RevCBTarget = 'preset' | 'headMotor' | 'footMotor' | 'headPosition' | 'footPosition' | 'light';
 export type RevCBCommand = { target: RevCBTarget; value: number[] };
 
+// Targets that physically move the bed, and so should produce position notifications shortly
+// after. The light doesn't move anything, so it tells us nothing about notification health.
+const MOVEMENT_TARGETS: RevCBTarget[] = ['preset', 'headMotor', 'footMotor', 'headPosition', 'footPosition'];
+const NOTIFICATION_GRACE = seconds(5);
+const NOTIFY_REFRESH_COOLDOWN = seconds(60);
+
 export class RevCBController extends EventEmitter implements IEventSource, IController<RevCBCommand> {
   cache: Dictionary<object> = {};
   private lastPositions: Dictionary<number> = {};
   private notifiedKeys = new Set<string>();
+  private hasNotifyHandles = false;
+  private lastNotificationAt = 0;
+  private lastNotifyRefreshAt = 0;
+  private notificationCheckTimer?: NodeJS.Timeout;
 
   // Unlike BLEController, this controller never disconnects once connected (see writeCommands) -
   // it's always meant to stay connected persistently. BLE/setupConnectionAvailability uses this
@@ -50,6 +61,7 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
           this.notifiedKeys.add(key);
           logInfo('[Reverie] First notification received:', key, data[0]);
         }
+        this.lastNotificationAt = Date.now();
         this.lastPositions[key] = data[0];
         this.emit(key, data);
       }).then(
@@ -57,6 +69,7 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
         (e) => logError(`[Reverie] Failed to subscribe to notifications for '${key}' - live updates from it will not work`, e)
       );
     });
+    this.hasNotifyHandles = Object.keys(notifyHandles).length > 0;
     this.bleDevice.startHealthMonitoring();
   }
 
@@ -81,6 +94,37 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
       } catch (e) {
         logError('[Reverie] Failed to write characteristic', e);
       }
+      if (MOVEMENT_TARGETS.includes(command.target)) this.expectNotifications();
+    }
+  };
+
+  // The periodic health check proves the *connection* is alive, but nothing proves *notifications*
+  // are - and those fail independently and completely silently (writes keep working while every
+  // live-feedback entity quietly freezes). Anything that moves the bed should produce position
+  // notifications within a moment, so that's a free, reliable moment to check. If none arrive,
+  // re-enable them rather than waiting for someone to notice the sliders have stopped moving.
+  private expectNotifications = () => {
+    if (!this.hasNotifyHandles) return;
+    const writtenAt = Date.now();
+    clearTimeout(this.notificationCheckTimer);
+    this.notificationCheckTimer = setTimeout(() => void this.verifyNotifications(writtenAt), NOTIFICATION_GRACE);
+  };
+
+  private verifyNotifications = async (writtenAt: number) => {
+    if (this.lastNotificationAt >= writtenAt) return; // data arrived, nothing to do
+
+    // A command that moved nothing (e.g. a preset the bed is already in) legitimately produces no
+    // notifications, so this can fire without anything being wrong. Re-subscribing is idempotent
+    // and cheap, so a false positive costs nothing - but rate-limit it anyway so a genuinely idle
+    // bed can't turn into a stream of re-subscribes.
+    if (Date.now() - this.lastNotifyRefreshAt < NOTIFY_REFRESH_COOLDOWN) return;
+    this.lastNotifyRefreshAt = Date.now();
+
+    logWarn('[Reverie] No position updates after a movement command - re-enabling notifications');
+    try {
+      await this.bleDevice.refreshNotifySubscriptions();
+    } catch (e) {
+      logError('[Reverie] Failed to re-enable notifications', e);
     }
   };
 

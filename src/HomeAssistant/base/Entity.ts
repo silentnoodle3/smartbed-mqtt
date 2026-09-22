@@ -14,6 +14,9 @@ export type EntityConfig = {
   description: string;
   category?: string;
   icon?: string;
+  // Home Assistant device class (e.g. 'timestamp'), so HA renders the state meaningfully rather
+  // than as a raw string. Optional and omitted from discovery entirely when not set.
+  deviceClass?: string;
 };
 
 export class Entity implements IAvailable {
@@ -87,6 +90,7 @@ export class Entity implements IAvailable {
       ...availability,
       ...(this.entityConfig.category ? { entity_category: this.entityConfig.category } : {}),
       ...(this.entityConfig.icon ? { icon: this.entityConfig.icon } : {}),
+      ...(this.entityConfig.deviceClass ? { device_class: this.entityConfig.deviceClass } : {}),
     };
   }
 

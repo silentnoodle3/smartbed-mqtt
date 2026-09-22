@@ -1,10 +1,15 @@
 import { IDeviceData } from '@ha/IDeviceData';
+import { Sensor } from '@ha/Sensor';
 import { IMQTTConnection } from '@mqtt/IMQTTConnection';
 import { logInfo } from '@utils/logger';
-import { IBLEDevice } from 'ESPHome/types/IBLEDevice';
+import { buildEntityConfig } from 'Common/buildEntityConfig';
+import { BLEConnectionStats, IBLEDevice } from 'ESPHome/types/IBLEDevice';
 
 const ONLINE = 'online';
 const OFFLINE = 'offline';
+
+const DIAGNOSTIC = { category: 'diagnostic' };
+const TIMESTAMP = { category: 'diagnostic', deviceClass: 'timestamp' };
 
 // Publishes (and keeps updated) a per-device MQTT availability/heartbeat topic that reflects the
 // *real* BLE connection health to the physical bed - not just whether this add-on's MQTT client
@@ -26,7 +31,32 @@ export const setupConnectionAvailability = (mqtt: IMQTTConnection, bleDevice: IB
     mqtt.publish(availabilityTopic, connected ? ONLINE : OFFLINE, true);
   };
 
-  bleDevice.onConnectionChange(publish);
+  const diagnostics = buildDiagnosticSensors(mqtt, deviceData);
+
+  const onChange = (connected: boolean) => {
+    publish(connected);
+    diagnostics(bleDevice.getConnectionStats());
+  };
+
+  bleDevice.onConnectionChange(onChange);
   publish(bleDevice.isConnected());
+  diagnostics(bleDevice.getConnectionStats());
   bleDevice.startHealthMonitoring(healthCheckIntervalMs);
+};
+
+// Exposes the link's own history as diagnostic entities, so "how often does this actually drop?"
+// is answerable from a dashboard instead of by grepping add-on logs before they rotate. Filed under
+// the diagnostic category, so they stay out of the way of the actual bed controls.
+const buildDiagnosticSensors = (mqtt: IMQTTConnection, deviceData: IDeviceData) => {
+  const disconnects = new Sensor<number>(mqtt, deviceData, buildEntityConfig('BLEDisconnects', DIAGNOSTIC));
+  const connectedSince = new Sensor<string>(mqtt, deviceData, buildEntityConfig('BLEConnectedSince', TIMESTAMP));
+  const lastDisconnect = new Sensor<string>(mqtt, deviceData, buildEntityConfig('BLELastDisconnect', TIMESTAMP));
+
+  return ({ connectedSince: since, lastDisconnectAt, disconnectCount }: BLEConnectionStats) => {
+    disconnects.setState(disconnectCount);
+    // null leaves the entity unavailable rather than showing a stale or invented timestamp - which
+    // is the honest state before the first connect, and between a drop and its reconnect.
+    connectedSince.setState(since ? since.toISOString() : null);
+    lastDisconnect.setState(lastDisconnectAt ? lastDisconnectAt.toISOString() : null);
+  };
 };

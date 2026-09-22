@@ -33,4 +33,17 @@ export interface IBLEDevice {
   // backing off between repeated failures instead of hammering the proxy. Intended only for
   // devices that are meant to stay connected persistently - see IController.isPersistentConnection.
   startHealthMonitoring(intervalMs?: number): void;
+  // Connection history for this link, for diagnostics - see BLE/setupConnectionAvailability.
+  getConnectionStats(): BLEConnectionStats;
+  // Re-registers notifications and re-writes their CCCD for every characteristic subscribed to via
+  // subscribeToCharacteristic. Done automatically after a reconnect; exposed so a caller that knows
+  // notifications *should* be arriving (e.g. it just moved the bed) can recover if they aren't.
+  refreshNotifySubscriptions(): Promise<void>;
 }
+
+export type BLEConnectionStats = {
+  connected: boolean;
+  connectedSince?: Date;
+  lastDisconnectAt?: Date;
+  disconnectCount: number;
+};
