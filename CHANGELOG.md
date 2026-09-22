@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.19
+
+**Bug Fixes**
+
+- (Common) Fix every bed command stalling for ~36 seconds and then failing, with nothing happening in between. Controllers call `bleDevice.connect()` defensively before each write (for non-persistent devices the link may have dropped since the last command). That was free when the old library sent the now-removed V1 `CONNECT` request, which the proxy answered immediately for an already-connected device - but the `1.3.6` upgrade sends the V3 connect types, which aren't necessarily answered for an address that's already connected, so every single command sat through the full response timeout plus this add-on's connect retries before giving up. `BLEDevice.connect()` now returns immediately when already connected; real drops still clear that state (proxy notification, proxy connection loss, or the periodic health check), so reconnects are unaffected
+- (Reverie RevCB) Log each command as it's written. Previously a successful write logged nothing and only failures logged, which made "I pressed a button and nothing happened" indistinguishable from "the press never reached the add-on" - both were completely silent
+
 ## v1.1.22-reverie.18
 
 **Bug Fixes**

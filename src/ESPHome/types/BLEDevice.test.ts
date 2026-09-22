@@ -70,6 +70,34 @@ describe(BLEDevice.name, () => {
     expect(connection.connectBluetoothDeviceService).toHaveBeenCalledWith(advertisement.address, advertisement.addressType, false);
   });
 
+  it('does not re-issue a connect request when already connected', async () => {
+    const connection = buildConnection();
+    const device = new BLEDevice('Test', advertisement, connection);
+    await device.connect();
+    connection.connectBluetoothDeviceService.mockClear();
+
+    // Callers connect() defensively before every command; that must not cost a round trip (or a
+    // full timeout, if the proxy doesn't answer a connect for an already-connected address).
+    await device.connect();
+    await device.connect();
+
+    expect(connection.connectBluetoothDeviceService).not.toHaveBeenCalled();
+    expect(device.isConnected()).toBe(true);
+  });
+
+  it('connects again after a drop, even though it skips redundant connects while up', async () => {
+    const connection = buildConnection();
+    const device = new BLEDevice('Test', advertisement, connection);
+    await device.connect();
+    emitConnectionResponse(connection, false);
+    connection.connectBluetoothDeviceService.mockClear();
+
+    await device.connect();
+
+    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(1);
+    expect(device.isConnected()).toBe(true);
+  });
+
   it('retries a transient failure on the very first connect() instead of throwing immediately', async () => {
     const connection = buildConnection();
     connection.connectBluetoothDeviceService

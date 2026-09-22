@@ -1,6 +1,6 @@
 import { IDeviceData } from '@ha/IDeviceData';
 import { Dictionary } from '@utils/Dictionary';
-import { logError } from '@utils/logger';
+import { logError, logInfo } from '@utils/logger';
 import { IController } from 'Common/IController';
 import { IEventSource } from 'Common/IEventSource';
 import { IBLEDevice } from 'ESPHome/types/IBLEDevice';
@@ -59,6 +59,10 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
       const handle = this.targetHandles[command.target];
       if (handle === undefined) continue;
       try {
+        // Logged so a command that reached the add-on is visible in the log even when it succeeds.
+        // Without this, "pressed a button and nothing happened" is indistinguishable from "the
+        // press never arrived" - both are silent, which cost a diagnostic round trip to work out.
+        logInfo('[Reverie] Writing command:', command.target, command.value);
         await this.bleDevice.writeCharacteristic(handle, new Uint8Array(command.value));
       } catch (e) {
         logError('[Reverie] Failed to write characteristic', e);

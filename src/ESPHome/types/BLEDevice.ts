@@ -184,6 +184,17 @@ export class BLEDevice implements IBLEDevice {
   };
 
   connect = async () => {
+    // Callers (e.g. RevCBController/BLEController before every write) call this defensively on
+    // every command, since for non-persistent devices the link may have been dropped since the
+    // last one. Re-issuing a connect request for a device we're already connected to used to be
+    // harmless - the old library sent the now-removed V1 CONNECT type, which the proxy answered
+    // immediately. The V3 connect types it sends now aren't necessarily answered for an
+    // already-connected address, leaving the caller waiting out the full timeout (and this class's
+    // retries) on every single command. Real drops still clear `connected` - via the proxy's
+    // unsolicited notification, the proxy connection dying, or the periodic health check - so
+    // skipping the redundant round-trip here is safe.
+    if (this.connected) return;
+
     this.transitioning = true;
     try {
       await this.connectWithRetry();
