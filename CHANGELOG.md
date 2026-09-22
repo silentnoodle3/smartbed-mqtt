@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.18
+
+**Bug Fixes**
+
+- (Common) Fix every BLE connect attempt hanging until timeout, introduced by this fork in `.14`. That release added an `unsubscribeBluetoothAdvertisementService()` call after the one-time startup device scan, on the assumption the advertisement stream was just wasted traffic afterwards. It isn't: in ESPHome's `bluetooth_proxy`, that subscription is what registers the API client as the proxy's Bluetooth subscriber. Unsubscribing tells the proxy the client is done with Bluetooth entirely, so it tears down that client's BLE connections - including ones still being established. Proxy-side debug logs showed the proxy starting the connection and then scheduling its own disconnect ~75ms later with nothing client-side having requested it, plus the repeated-disconnect busy loop described in esphome/esphome#9332. Removed the unsubscribe; dropping the local listener is enough to ignore advertisements we no longer care about. This was the cause of the `sendMessage timeout waiting for BluetoothDeviceConnectionResponse` failures in `.14` through `.17` - not the library upgrade, the connect v3 cache mode, proxy firmware, or the bed
+
 ## v1.1.22-reverie.17
 
 **Diagnostics**

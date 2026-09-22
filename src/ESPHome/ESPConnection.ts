@@ -80,11 +80,15 @@ export class ESPConnection implements IESPConnection {
     await complete;
     for (const { connection, listener } of listeners) {
       connection.off('message.BluetoothLEAdvertisementResponse', listener);
-      // Without this, the proxy keeps streaming every BLE advertisement it hears (every nearby
-      // phone/watch/etc., forever) to this client for the rest of the process's life, even though
-      // nothing is listening anymore past the one-time device scan above - pure waste at best, and
-      // a lot of otherwise-unnecessary traffic for the proxy connection to have to keep parsing.
-      connection.unsubscribeBluetoothAdvertisementService();
+      // NOTE: do NOT call unsubscribeBluetoothAdvertisementService() here. v1.1.22-reverie.14 did,
+      // on the assumption the advertisement stream was just wasted traffic once the one-time device
+      // scan above finished. It isn't: in ESPHome's bluetooth_proxy, that subscription is what
+      // registers this API client as the proxy's Bluetooth subscriber. Unsubscribing tells the
+      // proxy this client is done with Bluetooth entirely, so it tears down that client's BLE
+      // connections - including ones still being established - which made every subsequent
+      // connect() hang until its timeout, deterministically, on every single attempt.
+      // Dropping our own listener (above) is enough to stop processing advertisements we no longer
+      // care about; the proxy-side subscription has to stay for the lifetime of the connection.
     }
   }
 }
