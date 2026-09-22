@@ -8,7 +8,7 @@ import { IController } from '../Common/IController';
 import { IEventSource } from '../Common/IEventSource';
 import { arrayEquals } from '@utils/arrayEquals';
 import { deepArrayEquals } from '@utils/deepArrayEquals';
-import { logError } from '@utils/logger';
+import { logError, logInfo } from '@utils/logger';
 
 export class BLEController<TCommand> extends EventEmitter implements IEventSource, IController<TCommand> {
   cache: Dictionary<Object> = {};
@@ -31,11 +31,18 @@ export class BLEController<TCommand> extends EventEmitter implements IEventSourc
     super();
     Object.entries(notifyHandles).forEach(([key, handle]) => {
       this.stayConnected ||= true;
-      void this.bleDevice.subscribeToCharacteristic(handle, (data) => {
-        const previous = this.notifyValues[key];
-        if (previous && arrayEquals(data, previous)) return;
-        this.emit(key, data);
-      });
+      // Logged either way: a failure here silently stops everything downstream of these
+      // notifications from ever updating, with no other symptom to go on.
+      this.bleDevice
+        .subscribeToCharacteristic(handle, (data) => {
+          const previous = this.notifyValues[key];
+          if (previous && arrayEquals(data, previous)) return;
+          this.emit(key, data);
+        })
+        .then(
+          () => logInfo('[BLE] Subscribed to notifications:', key),
+          (e) => logError(`[BLE] Failed to subscribe to notifications for '${key}' - live updates from it will not work`, e)
+        );
     });
     // A device we intend to keep connected is exactly the kind whose silent staleness we can't
     // detect any other way (see BLEDevice.startHealthMonitoring) - a device that reconnects for

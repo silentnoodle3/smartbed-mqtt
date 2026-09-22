@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.20
+
+**Diagnostics**
+
+- (Common) Stop silently swallowing BLE notification-subscription failures. Both `BLEController` and `RevCBController` registered notify subscriptions as floating promises (`void ...`), so if enabling notifications on a characteristic failed, the error was discarded with nothing logged - and everything downstream (live position sensors, a position cover's reported position, Reverie memory-slot capture) just quietly never updated, indistinguishable from the bed not reporting anything. Both now log success and failure per notify key
+- (Reverie RevCB) Log the first notification received on each notify key, so "notifications were enabled" and "the bed is actually sending data on them" can be told apart - they previously failed in exactly the same silent way
+
 ## v1.1.22-reverie.19
 
 **Bug Fixes**

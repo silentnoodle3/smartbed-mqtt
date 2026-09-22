@@ -24,6 +24,7 @@ export type RevCBCommand = { target: RevCBTarget; value: number[] };
 export class RevCBController extends EventEmitter implements IEventSource, IController<RevCBCommand> {
   cache: Dictionary<object> = {};
   private lastPositions: Dictionary<number> = {};
+  private notifiedKeys = new Set<string>();
 
   // Unlike BLEController, this controller never disconnects once connected (see writeCommands) -
   // it's always meant to stay connected persistently. BLE/setupConnectionAvailability uses this
@@ -38,10 +39,23 @@ export class RevCBController extends EventEmitter implements IEventSource, ICont
   ) {
     super();
     Object.entries(notifyHandles).forEach(([key, handle]) => {
-      void this.bleDevice.subscribeToCharacteristic(handle, (data) => {
+      // Logged either way: if enabling notifications fails, everything downstream of it (live
+      // position sensors, the position covers' reported position, memory-slot capture) silently
+      // stops updating with no other symptom, which is near-impossible to tell apart from the
+      // bed simply not reporting anything.
+      this.bleDevice.subscribeToCharacteristic(handle, (data) => {
+        // Logged once per key, so "notifications were enabled" and "the bed is actually sending
+        // data on them" are distinguishable - they fail in exactly the same silent way otherwise.
+        if (!this.notifiedKeys.has(key)) {
+          this.notifiedKeys.add(key);
+          logInfo('[Reverie] First notification received:', key, data[0]);
+        }
         this.lastPositions[key] = data[0];
         this.emit(key, data);
-      });
+      }).then(
+        () => logInfo('[Reverie] Subscribed to notifications:', key),
+        (e) => logError(`[Reverie] Failed to subscribe to notifications for '${key}' - live updates from it will not work`, e)
+      );
     });
     this.bleDevice.startHealthMonitoring();
   }
