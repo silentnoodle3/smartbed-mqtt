@@ -13,6 +13,11 @@ import EventEmitter from 'events';
 // BLE GATT characteristic "Read" property bit (Bluetooth Core Spec, Characteristic Properties).
 const READABLE_PROPERTY = 0x02;
 
+// Client Characteristic Configuration Descriptor - the standard descriptor a central writes to to
+// tell a peripheral to start sending notifications on a characteristic. 0x0001 = notifications on.
+const CCCD_UUID = '00002902-0000-1000-8000-00805f9b34fb';
+const ENABLE_NOTIFICATIONS = new Uint8Array([0x01, 0x00]);
+
 const HEALTH_CHECK_TIMEOUT = seconds(10);
 const DEFAULT_HEALTH_CHECK_INTERVAL = minutes(3);
 const INITIAL_RECONNECT_BACKOFF = seconds(5);
@@ -270,6 +275,36 @@ export class BLEDevice implements IBLEDevice {
       notify(new Uint8Array([...Buffer.from(message.data, 'base64')]));
     });
     await this.connection.notifyBluetoothGATTCharacteristicService(this.address, handle);
+    await this.enableNotificationsOnDevice(handle);
+  };
+
+  // Registering for notify above only tells the proxy to route this characteristic's notifications
+  // to us - it's a local registration, which is why it succeeds even when nothing ever arrives.
+  // What actually tells the *peripheral* to start sending them is writing its Client Characteristic
+  // Configuration descriptor. Doing that explicitly here rather than relying on the proxy to do it,
+  // because the connect type this add-on now has to use ("v3 without cache", the old plain connect
+  // having been removed from the protocol) doesn't necessarily give the proxy a descriptor table to
+  // find the CCCD in - which produces exactly the "subscribed fine, no data ever" symptom.
+  // Writing it twice is harmless if the proxy already did it.
+  private enableNotificationsOnDevice = async (characteristicHandle: number) => {
+    const descriptorHandle = await this.findCCCDHandle(characteristicHandle);
+    if (descriptorHandle === undefined) {
+      logWarn(
+        `[BLE] No CCCD descriptor found for characteristic ${characteristicHandle} on ${this.name} - the device may never send notifications for it`
+      );
+      return;
+    }
+    await this.connection.writeBluetoothGATTDescriptorService(this.address, descriptorHandle, ENABLE_NOTIFICATIONS);
+  };
+
+  private findCCCDHandle = async (characteristicHandle: number): Promise<number | undefined> => {
+    const services = await this.getServices();
+    for (const service of services) {
+      const characteristic = service.characteristicsList?.find((c) => c.handle === characteristicHandle);
+      if (!characteristic) continue;
+      return characteristic.descriptorsList?.find((d) => d.uuid === CCCD_UUID)?.handle;
+    }
+    return undefined;
   };
 
   readCharacteristic = async (handle: number) => {

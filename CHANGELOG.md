@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.21
+
+**Bug Fixes**
+
+- (Common) Fix live position/feedback entities never updating, while commands to the bed worked fine. Registering for notifications only tells the *proxy* to route a characteristic's notifications to this client - a local registration, which is why it succeeded and logged "Subscribed" even though nothing ever arrived. What actually tells the *peripheral* to start sending them is writing its Client Characteristic Configuration descriptor (CCCD, `0x2902`), and the connect type this add-on now has to use ("v3 without cache", the plain connect having been removed from the ESPHome protocol in `.14`) doesn't necessarily leave the proxy a descriptor table to find that CCCD in. `subscribeToCharacteristic` now writes the descriptor explicitly after registering, which is protocol-correct regardless of connect/cache mode and harmless if the proxy already did it. If no CCCD can be found for a characteristic it now says so in the log instead of silently never notifying. Affects every bed type that uses notifications, not just Reverie
+
 ## v1.1.22-reverie.20
 
 **Diagnostics**

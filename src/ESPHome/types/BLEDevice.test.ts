@@ -35,9 +35,21 @@ const buildConnection = () => {
   connection.listBluetoothGATTServicesService = jest.fn().mockResolvedValue({
     address: advertisement.address,
     servicesList: [
-      { uuid: 'service', handle: 1, characteristicsList: [{ uuid: 'char', handle: 42, properties: 0x02, descriptorsList: [] }] },
+      {
+        uuid: 'service',
+        handle: 1,
+        characteristicsList: [
+          {
+            uuid: 'char',
+            handle: 42,
+            properties: 0x02,
+            descriptorsList: [{ uuid: '00002902-0000-1000-8000-00805f9b34fb', handle: 43 }],
+          },
+        ],
+      },
     ],
   });
+  connection.writeBluetoothGATTDescriptorService = jest.fn().mockResolvedValue(undefined);
   connection.readBluetoothGATTCharacteristicService = jest
     .fn()
     .mockResolvedValue({ address: advertisement.address, handle: 42, data: '' });
@@ -232,6 +244,36 @@ describe(BLEDevice.name, () => {
     await advanceTimersByTimeAsync(5_000); // backed-off reconnect after the stale check
     expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(1);
     expect(device.isConnected()).toBe(true);
+  });
+
+  it('writes the CCCD descriptor when subscribing, so the device actually sends notifications', async () => {
+    const connection = buildConnection();
+    const device = new BLEDevice('Test', advertisement, connection);
+    await device.connect();
+
+    await device.subscribeToCharacteristic(42, () => {});
+
+    expect(connection.notifyBluetoothGATTCharacteristicService).toHaveBeenCalledWith(advertisement.address, 42);
+    expect(connection.writeBluetoothGATTDescriptorService).toHaveBeenCalledWith(
+      advertisement.address,
+      43,
+      new Uint8Array([0x01, 0x00])
+    );
+  });
+
+  it('subscribes without throwing when the characteristic has no CCCD descriptor', async () => {
+    const connection = buildConnection();
+    connection.listBluetoothGATTServicesService = jest.fn().mockResolvedValue({
+      address: advertisement.address,
+      servicesList: [
+        { uuid: 'service', handle: 1, characteristicsList: [{ uuid: 'char', handle: 42, properties: 0x02, descriptorsList: [] }] },
+      ],
+    });
+    const device = new BLEDevice('Test', advertisement, connection);
+    await device.connect();
+
+    await expect(device.subscribeToCharacteristic(42, () => {})).resolves.not.toThrow();
+    expect(connection.writeBluetoothGATTDescriptorService).not.toHaveBeenCalled();
   });
 
   it('does not run health checks while disconnected, and resumes once reconnected', async () => {
