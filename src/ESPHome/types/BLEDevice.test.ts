@@ -261,6 +261,29 @@ describe(BLEDevice.name, () => {
     );
   });
 
+  it('re-enables notifications on the device after an unsolicited drop and reconnect', async () => {
+    const connection = buildConnection();
+    const device = new BLEDevice('Test', advertisement, connection);
+    await device.connect();
+    await device.subscribeToCharacteristic(42, () => {});
+    connection.notifyBluetoothGATTCharacteristicService.mockClear();
+    connection.writeBluetoothGATTDescriptorService.mockClear();
+
+    // Notification state is per-connection: the proxy's registration dies with the old GATT
+    // connection and the peripheral resets its CCCD, so a reconnect must redo both or live
+    // feedback silently stops while writes keep working.
+    emitConnectionResponse(connection, false);
+    await advanceTimersByTimeAsync(5_000);
+
+    expect(device.isConnected()).toBe(true);
+    expect(connection.notifyBluetoothGATTCharacteristicService).toHaveBeenCalledWith(advertisement.address, 42);
+    expect(connection.writeBluetoothGATTDescriptorService).toHaveBeenCalledWith(
+      advertisement.address,
+      43,
+      new Uint8Array([0x01, 0x00])
+    );
+  });
+
   it('subscribes without throwing when the characteristic has no CCCD descriptor', async () => {
     const connection = buildConnection();
     connection.listBluetoothGATTServicesService = jest.fn().mockResolvedValue({

@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.22
+
+**Bug Fixes**
+
+- (Common) Re-enable notifications after a reconnect. Notification state is per-connection, not per-device: the proxy's notify registration belongs to the GATT connection that just died, and a non-bonded peripheral resets its CCCD to `0` on disconnect. `subscribeToCharacteristic` was only ever called once, at controller construction, so after the automatic reconnect added in `.13` the link came back with notifications silently off - writes kept working perfectly (they need no per-connection state) while every live-feedback entity quietly stopped updating until the add-on was restarted. Observed in the wild as "worked at bedtime, position display dead by morning". `BLEDevice` now remembers which characteristic handles it was asked to notify on and re-registers plus re-writes their CCCD after every successful reconnect, logging each one
+
 ## v1.1.22-reverie.21
 
 **Bug Fixes**

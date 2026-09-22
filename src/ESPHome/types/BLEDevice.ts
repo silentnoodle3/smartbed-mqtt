@@ -43,6 +43,10 @@ export class BLEDevice implements IBLEDevice {
 
   private deviceInfo?: BLEDeviceInfo;
 
+  // Characteristic handles we've been asked to receive notifications on, so they can be re-enabled
+  // on the device after a reconnect (see restoreNotifySubscriptions).
+  private notifyHandles: number[] = [];
+
   private connectionEmitter = new EventEmitter();
   private reconnectTimer?: NodeJS.Timeout;
   private reconnectBackoff = INITIAL_RECONNECT_BACKOFF;
@@ -205,6 +209,7 @@ export class BLEDevice implements IBLEDevice {
       await this.connectWithRetry();
       this.updateConnectedState(true, 'connect() succeeded');
       if (this.paired) await this.pair();
+      await this.restoreNotifySubscriptions();
     } finally {
       this.transitioning = false;
     }
@@ -270,12 +275,37 @@ export class BLEDevice implements IBLEDevice {
   };
 
   subscribeToCharacteristic = async (handle: number, notify: (data: Uint8Array) => void) => {
+    // The local listener is registered once and survives reconnects (it's on the proxy connection,
+    // not the BLE link). The device-side enablement below does NOT survive - see
+    // restoreNotifySubscriptions - so the handle is remembered to be re-enabled after a reconnect.
     this.connection.on('message.BluetoothGATTNotifyDataResponse', (message) => {
       if (message.address != this.address || message.handle != handle) return;
       notify(new Uint8Array([...Buffer.from(message.data, 'base64')]));
     });
+    if (!this.notifyHandles.includes(handle)) this.notifyHandles.push(handle);
+    await this.enableNotify(handle);
+  };
+
+  private enableNotify = async (handle: number) => {
     await this.connection.notifyBluetoothGATTCharacteristicService(this.address, handle);
     await this.enableNotificationsOnDevice(handle);
+  };
+
+  // Notification state is per-connection, not per-device: the proxy's notify registration belongs
+  // to the GATT connection that's just been replaced, and for a non-bonded device the peripheral
+  // resets its CCCD to 0 on disconnect. So after any reconnect, notifications are off again even
+  // though writes work perfectly - which looks exactly like "commands fine, position display dead".
+  // Nothing re-subscribed after the automatic reconnect added in v1.1.22-reverie.13, so this could
+  // survive one overnight drop and silently lose live feedback until the add-on was restarted.
+  private restoreNotifySubscriptions = async () => {
+    for (const handle of this.notifyHandles) {
+      try {
+        await this.enableNotify(handle);
+        logInfo(`[BLE] Re-enabled notifications after reconnect for ${this.name}, handle:`, handle);
+      } catch (e) {
+        logError(`[BLE] Failed to re-enable notifications after reconnect for ${this.name}, handle ${handle}`, e);
+      }
+    }
   };
 
   // Registering for notify above only tells the proxy to route this characteristic's notifications
