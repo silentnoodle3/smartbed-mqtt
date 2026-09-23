@@ -311,4 +311,42 @@ describe(BLEDevice.name, () => {
     await advanceTimersByTimeAsync(60_000);
     expect(connection.readBluetoothGATTCharacteristicService).not.toHaveBeenCalled();
   });
+
+  it('retries promptly once the proxy link is re-established, instead of waiting out the built-up backoff', async () => {
+    const connection = buildConnection();
+    const device = new BLEDevice('Test', advertisement, connection);
+    await device.connect();
+
+    // proxy unplugged: the link drops and every reconnect attempt fails until the backoff maxes out
+    connection.connectBluetoothDeviceService.mockRejectedValue(new Error('proxy unreachable'));
+    connection.emit('disconnected');
+    await advanceTimersByTimeAsync(30 * 60_000);
+    expect(device.isConnected()).toBe(false);
+
+    // proxy back: the library re-authorizes the link, and the next attempt should come quickly
+    connection.connectBluetoothDeviceService.mockClear();
+    connection.connectBluetoothDeviceService.mockResolvedValue({
+      address: advertisement.address,
+      connected: true,
+      mtu: 0,
+      error: 0,
+    });
+    connection.emit('authorized');
+
+    await advanceTimersByTimeAsync(5_000);
+    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(1);
+    expect(device.isConnected()).toBe(true);
+  });
+
+  it('ignores the proxy link being re-authorized while the device is still connected', async () => {
+    const connection = buildConnection();
+    const device = new BLEDevice('Test', advertisement, connection);
+    await device.connect();
+    connection.connectBluetoothDeviceService.mockClear();
+
+    connection.emit('authorized');
+    await advanceTimersByTimeAsync(60_000);
+
+    expect(connection.connectBluetoothDeviceService).not.toHaveBeenCalled();
+  });
 });

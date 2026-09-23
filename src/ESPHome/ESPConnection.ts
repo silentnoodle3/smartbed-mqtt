@@ -8,7 +8,9 @@ import { BLEDevice } from './types/BLEDevice';
 import { IBLEDevice } from './types/IBLEDevice';
 
 export class ESPConnection implements IESPConnection {
-  constructor(private connections: Connection[]) {}
+  constructor(private connections: Connection[]) {
+    connections.forEach(this.keepBluetoothSubscription);
+  }
 
   async reconnect(): Promise<void> {
     this.disconnect();
@@ -18,7 +20,25 @@ export class ESPConnection implements IESPConnection {
         connect(new Connection({ host: connection.host, port: connection.port, password: connection.password }))
       )
     );
+    this.connections.forEach(this.keepBluetoothSubscription);
   }
+
+  // esphome-native-api transparently re-establishes the proxy's TCP link after it drops (e.g. the
+  // ESP32 being unplugged or rebooting), but that's a brand new API session on the proxy side, with
+  // none of the old one's state. In particular the advertisement subscription - which is what makes
+  // this client the proxy's Bluetooth subscriber (see discoverBLEDevices) - is gone, and without it
+  // the proxy never answers a BLE connect request, so every reconnect attempt just times out forever
+  // until the add-on is restarted. Re-subscribe whenever the link is re-authorized.
+  private keepBluetoothSubscription = (connection: Connection) => {
+    connection.on('authorized', () => {
+      logInfo('[ESPHome] Proxy connection re-established, re-subscribing to Bluetooth:', connection.host);
+      try {
+        connection.subscribeBluetoothAdvertisementService();
+      } catch (e) {
+        logWarn('[ESPHome] Failed to re-subscribe to Bluetooth after proxy reconnect:', connection.host, e);
+      }
+    });
+  };
 
   disconnect(): void {
     logInfo('[ESPHome] Disconnecting...');

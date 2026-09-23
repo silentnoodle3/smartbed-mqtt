@@ -92,6 +92,17 @@ export class BLEDevice implements IBLEDevice {
     this.connection.on('disconnected', () => {
       if (this.connected) this.updateConnectedState(false, 'ESPHome proxy connection lost');
     });
+    // Once the proxy is reachable again, don't sit out whatever backoff the failed attempts while it
+    // was down built up (up to MAX_RECONNECT_BACKOFF) - try again promptly. ESPConnection registers
+    // its own 'authorized' listener before any BLEDevice exists, so the proxy has already been asked
+    // to re-subscribe us to Bluetooth by the time this runs.
+    this.connection.on('authorized', () => {
+      if (this.connected) return;
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+      this.reconnectBackoff = INITIAL_RECONNECT_BACKOFF;
+      this.scheduleReconnect();
+    });
     this.connection.on('error', (error: unknown) => {
       logError(`[BLE] ESPHome proxy connection error for ${this.name}:`, error);
     });

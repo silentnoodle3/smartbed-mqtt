@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.25
+
+**Bug Fixes**
+
+- (Common) Fix the bed never reconnecting after the Bluetooth proxy is unplugged or rebooted - entities stayed unavailable, with every reconnect attempt timing out on `BluetoothDeviceConnectionResponse`, until the add-on was restarted. `esphome-native-api` transparently re-establishes the proxy's API link once it's reachable again, but that's a brand new session on the proxy, and the Bluetooth advertisement subscription - which is what registers this add-on as the proxy's Bluetooth subscriber (see the `.14` unsubscribe regression) - was only ever sent once, at startup. Without it the proxy silently ignores BLE connect requests. The add-on now re-subscribes whenever a proxy link is re-authorized
+- (Common) Once the proxy link comes back, the bed now reconnects within ~5s instead of waiting out whatever backoff built up while the proxy was down (up to 5 minutes)
+
 ## v1.1.22-reverie.24
 
 **Bug Fixes**
