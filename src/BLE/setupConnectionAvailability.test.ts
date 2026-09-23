@@ -74,9 +74,11 @@ describe(setupConnectionAvailability.name, () => {
     setupConnectionAvailability(mqtt, bleDevice, deviceData);
     jest.runAllTimers();
 
-    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_disconnects/state', 3);
-    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_connected_since/state', connectedSince.toISOString());
-    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_last_disconnect/state', lastDisconnectAt.toISOString());
+    // Retained: these must survive an HA Core restart between connection-state changes, which may
+    // legitimately be a long time (see BLEDevice.ts's comment on buildDiagnosticSensors).
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_disconnects/state', 3, true);
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_connected_since/state', connectedSince.toISOString(), true);
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_last_disconnect/state', lastDisconnectAt.toISOString(), true);
 
     // A drop should bump the count and clear "connected since" rather than leave a stale value.
     bleDevice.getConnectionStats.mockReturnValue({ connected: false, lastDisconnectAt, disconnectCount: 4 });
@@ -84,7 +86,7 @@ describe(setupConnectionAvailability.name, () => {
     onChange(false);
     jest.runAllTimers();
 
-    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_disconnects/state', 4);
+    expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_disconnects/state', 4, true);
     expect(mqtt.publish).toHaveBeenCalledWith('device_topic/ble_connected_since/status', 'offline');
   });
 });

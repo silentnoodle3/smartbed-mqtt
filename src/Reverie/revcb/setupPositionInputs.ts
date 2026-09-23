@@ -22,7 +22,7 @@ export const setupPositionInputs = (mqtt: IMQTTConnection, controller: RevCBCont
     cache.headTarget = new NumberSlider(
       mqtt,
       deviceData,
-      { ...buildEntityConfig('HeadTarget', { icon: 'mdi:head' }), mode: 'box' },
+      { ...buildEntityConfig('HeadTarget', { icon: 'mdi:head' }), mode: 'box', retain: true },
       async (value) => void writeCommand(Commands.HeadTo(value))
     ).setOnline();
     on('headPosition', (data) => cache.headTarget!.setState(data[0]));
@@ -32,7 +32,7 @@ export const setupPositionInputs = (mqtt: IMQTTConnection, controller: RevCBCont
     cache.footTarget = new NumberSlider(
       mqtt,
       deviceData,
-      { ...buildEntityConfig('FootTarget', { icon: 'mdi:foot-print' }), mode: 'box' },
+      { ...buildEntityConfig('FootTarget', { icon: 'mdi:foot-print' }), mode: 'box', retain: true },
       async (value) => void writeCommand(Commands.FootTo(value))
     ).setOnline();
     on('footPosition', (data) => cache.footTarget!.setState(data[0]));

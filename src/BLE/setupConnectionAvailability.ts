@@ -47,10 +47,14 @@ export const setupConnectionAvailability = (mqtt: IMQTTConnection, bleDevice: IB
 // Exposes the link's own history as diagnostic entities, so "how often does this actually drop?"
 // is answerable from a dashboard instead of by grepping add-on logs before they rotate. Filed under
 // the diagnostic category, so they stay out of the way of the actual bed controls.
+//
+// Retained: these only change on a connection-state change, which (correctly) may not happen for
+// a long time - without retain, an HA Core restart in between wipes them to "unknown" with nothing
+// to repopulate them until the next actual drop or reconnect.
 const buildDiagnosticSensors = (mqtt: IMQTTConnection, deviceData: IDeviceData) => {
-  const disconnects = new Sensor<number>(mqtt, deviceData, buildEntityConfig('BLEDisconnects', DIAGNOSTIC));
-  const connectedSince = new Sensor<string>(mqtt, deviceData, buildEntityConfig('BLEConnectedSince', TIMESTAMP));
-  const lastDisconnect = new Sensor<string>(mqtt, deviceData, buildEntityConfig('BLELastDisconnect', TIMESTAMP));
+  const disconnects = new Sensor<number>(mqtt, deviceData, buildEntityConfig('BLEDisconnects', DIAGNOSTIC), true);
+  const connectedSince = new Sensor<string>(mqtt, deviceData, buildEntityConfig('BLEConnectedSince', TIMESTAMP), true);
+  const lastDisconnect = new Sensor<string>(mqtt, deviceData, buildEntityConfig('BLELastDisconnect', TIMESTAMP), true);
 
   return ({ connectedSince: since, lastDisconnectAt, disconnectCount }: BLEConnectionStats) => {
     disconnects.setState(disconnectCount);

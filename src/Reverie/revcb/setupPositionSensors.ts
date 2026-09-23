@@ -20,13 +20,16 @@ interface Cache {
 export const setupPositionSensors = (mqtt: IMQTTConnection, controller: RevCBController & ICache<Cache>) => {
   const { cache, deviceData, on } = controller;
 
+  // Retained: this value only ever changes via a live BLE notify, so without retain an HA Core
+  // restart wipes it to "unknown" until the bed happens to move again - see setupConnectionAvailability.ts
+  // for the same reasoning applied to the BLE diagnostic sensors.
   if (!cache.headPosition) {
-    cache.headPosition = new Sensor<string>(mqtt, deviceData, buildEntityConfig('HeadPosition')).setOnline();
+    cache.headPosition = new Sensor<string>(mqtt, deviceData, buildEntityConfig('HeadPosition'), true).setOnline();
     on('headPosition', (data) => cache.headPosition!.setState(data[0].toString()));
   }
 
   if (!cache.footPosition) {
-    cache.footPosition = new Sensor<string>(mqtt, deviceData, buildEntityConfig('FootPosition')).setOnline();
+    cache.footPosition = new Sensor<string>(mqtt, deviceData, buildEntityConfig('FootPosition'), true).setOnline();
     on('footPosition', (data) => cache.footPosition!.setState(data[0].toString()));
   }
 };

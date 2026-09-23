@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.24
+
+**Bug Fixes**
+
+- (Reverie RevCB) Fix live position display going blank on a Home Assistant Core restart (not an add-on restart, and not a BLE problem - confirmed by writes continuing to work throughout). MQTT retain support was added back in `.6`, but only ever wired up for the memory-slot position sensors, never for the *live* Head/Foot Position sensors, the Head/Foot Target number entities, or the position covers themselves - all of which only ever change via a BLE notify, so without retain there's nothing to repopulate them until the bed happens to move again after HA comes back. Turned retain on for all four. `PositionalCover` and `NumberSlider` gained the same opt-in `retain` support `Sensor`/`StatefulEntity` already had; default stays off for every other caller
+- (Common) The three new `.23` BLE diagnostic sensors had the identical gap from day one - only changing on a connection-state event, which may legitimately not happen for a long time, so an HA restart in between wiped them to `unknown`. Now retained too
+
 ## v1.1.22-reverie.23
 
 **New Features**

@@ -14,7 +14,7 @@ export class PositionalCover extends Cover {
     deviceData: IDeviceData,
     config: EntityConfig,
     onSetPosition: (position: number) => void,
-    private options: { positionOpen?: number; positionClosed?: number; onStop?: () => void } = {}
+    private options: { positionOpen?: number; positionClosed?: number; onStop?: () => void; retain?: boolean } = {}
   ) {
     super(mqtt, deviceData, config, (message) => {
       switch (message) {
@@ -64,7 +64,16 @@ export class PositionalCover extends Cover {
   private sendPosition() {
     setTimeout(() => {
       const message = this.mapPosition(this.position);
-      this.mqtt.publish(this.positionTopic, message);
+      // Not retained by default, matching every other entity here - opt-in only, so this stays a
+      // no-op for callers relying on the previous exact publish() call signature. Reverie's covers
+      // opt in: their position only ever changes via a live BLE notify, so an HA Core restart
+      // otherwise wipes it to "unknown" until the bed happens to move again - see
+      // Reverie/revcb/setupMotorEntities.ts.
+      if (this.options.retain) {
+        this.mqtt.publish(this.positionTopic, message, true);
+      } else {
+        this.mqtt.publish(this.positionTopic, message);
+      }
     }, 250);
   }
 }

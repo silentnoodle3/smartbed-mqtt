@@ -9,6 +9,10 @@ export type NumberSliderConfig = {
   max?: number;
   icon?: string;
   mode?: 'slider' | 'box' | 'auto';
+  // Not retained by default, matching every other entity here. Opt in for a value that only ever
+  // changes via a live BLE notify, so an HA Core restart doesn't wipe it to "unknown" until the bed
+  // happens to move again - see Reverie/revcb/setupPositionInputs.ts.
+  retain?: boolean;
 };
 
 export class NumberSlider extends StatefulEntity<number> {
@@ -21,10 +25,10 @@ export class NumberSlider extends StatefulEntity<number> {
   constructor(
     mqtt: IMQTTConnection,
     deviceData: IDeviceData,
-    { min = 0, max = 100, icon, mode = 'slider', ...config }: EntityConfig & NumberSliderConfig,
+    { min = 0, max = 100, icon, mode = 'slider', retain = false, ...config }: EntityConfig & NumberSliderConfig,
     onChange: (state: number) => Promise<void | number>
   ) {
-    super(mqtt, deviceData, config, 'number');
+    super(mqtt, deviceData, config, 'number', retain);
     this.min = min;
     this.max = max;
     this.icon = icon;

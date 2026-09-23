@@ -26,7 +26,7 @@ export const setupMotorEntities = (mqtt: IMQTTConnection, controller: RevCBContr
       deviceData,
       buildEntityConfig('MotorHead', { icon: 'mdi:head' }),
       (position) => writeCommand(Commands.HeadTo(position)),
-      { onStop: () => writeCommand(Commands.HeadStop) }
+      { onStop: () => writeCommand(Commands.HeadStop), retain: true }
     ).setOnline();
     on('headPosition', (data) => cache.headMotor!.setPosition(data[0]));
   }
@@ -37,7 +37,7 @@ export const setupMotorEntities = (mqtt: IMQTTConnection, controller: RevCBContr
       deviceData,
       buildEntityConfig('MotorFeet', { icon: 'mdi:foot-print' }),
       (position) => writeCommand(Commands.FootTo(position)),
-      { onStop: () => writeCommand(Commands.FootStop) }
+      { onStop: () => writeCommand(Commands.FootStop), retain: true }
     ).setOnline();
     on('footPosition', (data) => cache.feetMotor!.setPosition(data[0]));
   }
