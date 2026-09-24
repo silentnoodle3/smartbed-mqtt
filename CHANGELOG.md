@@ -2,6 +2,13 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.26
+
+**Bug Fixes**
+
+- (Common) Fix the bed never reconnecting after being powered off for a while (~10 minutes) - a short power blip healed on its own, but a longer one stayed disconnected until the Bluetooth proxy itself was power-cycled. ESPHome's proxy silently ignores a connect request for an address whose connection slot isn't idle (still searching for / connecting to the device from an earlier request) - no response at all, just a client-side timeout. Retrying against an absent device could leave that slot wedged mid-attempt, after which every retry was ignored the same way, forever. The add-on now sends a DISCONNECT for the address after every failed connect attempt, which is what makes the proxy tear that slot down, so each retry starts clean
+- (Common) Fix a failed connect being treated as a successful one. `esphome-native-api` resolves a connect request with whatever connection response the proxy sends - including one reporting the attempt failed (`connected: false`, e.g. the device isn't powered). That was taken as success, marking the device connected while nothing worked until the next health check noticed. It's now treated as a failed attempt and retried
+
 ## v1.1.22-reverie.25
 
 **Bug Fixes**

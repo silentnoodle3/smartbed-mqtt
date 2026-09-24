@@ -349,4 +349,53 @@ describe(BLEDevice.name, () => {
 
     expect(connection.connectBluetoothDeviceService).not.toHaveBeenCalled();
   });
+
+  it('treats a "connected: false" reply from the proxy as a failed attempt, not a connection', async () => {
+    const connection = buildConnection();
+    connection.connectBluetoothDeviceService
+      .mockResolvedValueOnce({ address: advertisement.address, connected: false, mtu: 0, error: 133 })
+      .mockResolvedValueOnce({ address: advertisement.address, connected: true, mtu: 0, error: 0 });
+    const device = new BLEDevice('Test', advertisement, connection);
+
+    const connecting = device.connect();
+    expect(device.isConnected()).toBe(false);
+    await advanceTimersByTimeAsync(3_000);
+    await connecting;
+
+    expect(connection.connectBluetoothDeviceService).toHaveBeenCalledTimes(2);
+    expect(device.isConnected()).toBe(true);
+  });
+
+  it("resets the proxy's connection slot after a failed attempt, so a wedged slot can't block retries forever", async () => {
+    const connection = buildConnection();
+    connection.connectBluetoothDeviceService
+      .mockRejectedValueOnce(new Error('sendMessage timeout waiting for BluetoothDeviceConnectionResponse'))
+      .mockImplementationOnce(async () => {
+        // the slot must have been freed before this retry went out
+        expect(connection.disconnectBluetoothDeviceService).toHaveBeenCalledWith(advertisement.address);
+        return { address: advertisement.address, connected: true, mtu: 0, error: 0 };
+      });
+    const device = new BLEDevice('Test', advertisement, connection);
+
+    const connecting = device.connect();
+    await advanceTimersByTimeAsync(3_000);
+    await connecting;
+
+    expect(device.isConnected()).toBe(true);
+  });
+
+  it('keeps retrying even if resetting the proxy slot itself fails', async () => {
+    const connection = buildConnection();
+    connection.disconnectBluetoothDeviceService.mockRejectedValue(new Error('no answer'));
+    connection.connectBluetoothDeviceService
+      .mockRejectedValueOnce(new Error('timeout'))
+      .mockResolvedValueOnce({ address: advertisement.address, connected: true, mtu: 0, error: 0 });
+    const device = new BLEDevice('Test', advertisement, connection);
+
+    const connecting = device.connect();
+    await advanceTimersByTimeAsync(3_000);
+    await connecting;
+
+    expect(device.isConnected()).toBe(true);
+  });
 });

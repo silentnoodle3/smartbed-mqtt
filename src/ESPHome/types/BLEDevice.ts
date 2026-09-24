@@ -255,12 +255,34 @@ export class BLEDevice implements IBLEDevice {
       // ~100ms, before a connection ever stabilizes, every single attempt - something neither this
       // add-on nor useCache controls. Back to the library's default (false / "without cache") while
       // that gets diagnosed further with matching proxy-side visibility.
-      await this.connection.connectBluetoothDeviceService(this.address, addressType, false);
+      // esphome-native-api resolves with whatever BluetoothDeviceConnectionResponse arrives - including
+      // the proxy reporting that the attempt failed (e.g. the device isn't powered). That's not a
+      // connection, and treating it as one would mark the device connected while nothing works.
+      const { connected, error } = await this.connection.connectBluetoothDeviceService(this.address, addressType, false);
+      if (!connected) throw new Error(`Proxy reported connect failed for ${this.name} (error ${error})`);
     } catch (e) {
+      await this.resetProxyConnectionSlot();
       if (attempt >= CONNECT_ATTEMPTS) throw e;
       logWarn(`[BLE] Connect attempt ${attempt}/${CONNECT_ATTEMPTS} failed for ${this.name}, retrying:`, e);
       await wait(CONNECT_RETRY_DELAY);
       await this.connectWithRetry(attempt + 1);
+    }
+  };
+
+  // The proxy silently ignores a connect request for an address whose connection slot isn't idle -
+  // still searching for, waiting to connect to, or connecting to it from an earlier request - with no
+  // response at all, so all we ever see is a client-side timeout. If an attempt against an absent
+  // device (e.g. the bed unplugged for a while) leaves that slot wedged mid-attempt, every later
+  // request is ignored the same way and the link never heals until the proxy itself is power-cycled.
+  // A DISCONNECT request is what makes the proxy tear down whatever state that slot is in, so send
+  // one after every failed attempt so the next one starts from a clean slot. Best-effort: when the
+  // slot is already free the proxy just answers "disconnected", and if it doesn't answer at all
+  // there's nothing more useful to do than carry on retrying.
+  private resetProxyConnectionSlot = async () => {
+    try {
+      await this.connection.disconnectBluetoothDeviceService(this.address);
+    } catch (e) {
+      logWarn(`[BLE] Could not reset the proxy's connection slot for ${this.name}:`, e);
     }
   };
 
