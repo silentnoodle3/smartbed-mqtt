@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.28
+
+**Bug Fixes**
+
+- (Common) Fix the add-on crash-looping on `Connection refused: Not authorized` whenever the Supervisor doesn't have the MQTT broker's login available at the instant it starts, even with the Mosquitto add-on running fine. With the MQTT settings left on `<auto_detect>`, the startup script checked the Supervisor's MQTT service exactly once and, if it wasn't there, silently fell back to an anonymous connection, which the broker refuses, so the add-on exited and was restarted into the same thing. It now retries the lookup for up to a minute before falling back, and logs what the Supervisor actually answered on each failed attempt (result and message only - never the returned data, which contains the password), so a persistent failure says why instead of just "No Home Assistant MQTT service found"
+
 ## v1.1.22-reverie.27
 
 **Bug Fixes**
