@@ -73,6 +73,18 @@ export class BLEDevice implements IBLEDevice {
 
   constructor(public name: string, public advertisement: BLEAdvertisement, private connection: Connection) {
     this.mac = this.address.toString(16).padStart(12, '0');
+  }
+
+  // Discovery builds a BLEDevice for every named device the proxy hears advertising - neighbours'
+  // TVs, light strips, a CPAP - not just the ones configured. Registering these listeners in the
+  // constructor made every one of those an auto-reconnecting device: the first time the proxy link
+  // was re-authorized, each of them "reconnected" to a device this add-on was never asked to manage,
+  // tying up the proxy's few connection slots indefinitely. So a device only starts reacting to
+  // proxy events once something has actually asked to connect to it.
+  private listening = false;
+  private listenForConnectionEvents = () => {
+    if (this.listening) return;
+    this.listening = true;
     // The ESP32 proxy broadcasts this message both as the direct response to a connect()/
     // disconnect() request we made and, separately, whenever the bed's BLE link changes state on
     // its own (a real disconnect, or the bed/proxy re-establishing it). Ignore the former (our own
@@ -106,7 +118,7 @@ export class BLEDevice implements IBLEDevice {
     this.connection.on('error', (error: unknown) => {
       logError(`[BLE] ESPHome proxy connection error for ${this.name}:`, error);
     });
-  }
+  };
 
   private updateConnectedState = (connected: boolean, reason: string) => {
     if (this.connected === connected) return;
@@ -235,6 +247,7 @@ export class BLEDevice implements IBLEDevice {
     // skipping the redundant round-trip here is safe.
     if (this.connected) return;
 
+    this.listenForConnectionEvents();
     this.transitioning = true;
     try {
       await this.connectWithRetry();

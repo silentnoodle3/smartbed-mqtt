@@ -338,6 +338,19 @@ describe(BLEDevice.name, () => {
     expect(device.isConnected()).toBe(true);
   });
 
+  it('never connects to a discovered device nothing has asked to connect to', async () => {
+    const connection = buildConnection();
+    new BLEDevice('Neighbour TV', advertisement, connection);
+
+    // the proxy link is re-established, and someone else's connection to that device comes and goes
+    connection.emit('authorized');
+    emitConnectionResponse(connection, true);
+    emitConnectionResponse(connection, false);
+    await advanceTimersByTimeAsync(30 * 60_000);
+
+    expect(connection.connectBluetoothDeviceService).not.toHaveBeenCalled();
+  });
+
   it('ignores the proxy link being re-authorized while the device is still connected', async () => {
     const connection = buildConnection();
     const device = new BLEDevice('Test', advertisement, connection);

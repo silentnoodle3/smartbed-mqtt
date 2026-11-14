@@ -2,6 +2,12 @@
 > from upstream. For the original project's history before the fork, see
 > [richardhopton/smartbed-mqtt](https://github.com/richardhopton/smartbed-mqtt/blob/main/CHANGELOG.md).
 
+## v1.1.22-reverie.27
+
+**Bug Fixes**
+
+- (Common) Fix the add-on connecting to, and endlessly reconnecting to, other people's Bluetooth devices it was never configured for - in one case a Govee light strip it dropped and reconnected to every ~10 seconds for 12+ hours straight (2,400+ cycles), and a ResMed CPAP it held a connection to the whole time. On startup, discovery builds a device object for every named device the proxy hears advertising, not just the configured bed, and each of those registered the proxy event listeners that drive automatic reconnection. The `.25` change to retry promptly once the proxy link is re-established then made every one of them try to connect the first time that happened, and the existing unsolicited-disconnect handling kept them reconnecting from then on. Besides spamming the log, each one held one of the ESP32 proxy's very few connection slots. Devices now only start reacting to proxy events once something has actually asked to connect to them, so only the configured bed ever auto-reconnects
+
 ## v1.1.22-reverie.26
 
 **Bug Fixes**
